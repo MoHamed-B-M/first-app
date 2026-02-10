@@ -1,5 +1,19 @@
 name: Build APK
-on: [push]
+
+on:
+  push:
+    branches:
+      - main
+    # This ensures the build only starts if files in these paths change
+    paths:
+      - 'app/**'        # Monitors your Android app source code
+      - 'build.gradle'  # Monitors project-level gradle changes
+      - 'gradle/**'     # Monitors gradle wrapper changes
+    # This explicitly ignores documentation or workflow changes
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/changelog.yml'
+      - 'cliff.toml'
 
 jobs:
   build:
@@ -16,19 +30,14 @@ jobs:
 
       - name: Find and Run Gradle
         run: |
-          # Find the gradlew file anywhere in the repo
           GRADLEW_PATH=$(find . -name gradlew | head -n 1)
           
           if [ -z "$GRADLEW_PATH" ]; then
-            echo "❌ ERROR: gradlew not found. Did you push it to GitHub?"
+            echo "❌ ERROR: gradlew not found."
             exit 1
           fi
           
-          # Get the directory where gradlew lives
           PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
-          echo "✅ Found project at: $PROJECT_ROOT"
-          
-          # Make it executable and run the build
           chmod +x "$GRADLEW_PATH"
           cd "$PROJECT_ROOT"
           ./gradlew assembleDebug
