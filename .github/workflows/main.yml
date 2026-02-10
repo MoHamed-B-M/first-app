@@ -1,0 +1,40 @@
+name: Build APK
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Find and Run Gradle
+        run: |
+          # Find the gradlew file anywhere in the repo
+          GRADLEW_PATH=$(find . -name gradlew | head -n 1)
+          
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "❌ ERROR: gradlew not found. Did you push it to GitHub?"
+            exit 1
+          fi
+          
+          # Get the directory where gradlew lives
+          PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
+          echo "✅ Found project at: $PROJECT_ROOT"
+          
+          # Make it executable and run the build
+          chmod +x "$GRADLEW_PATH"
+          cd "$PROJECT_ROOT"
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CalmApp-Debug
+          path: "**/build/outputs/apk/debug/*.apk"
