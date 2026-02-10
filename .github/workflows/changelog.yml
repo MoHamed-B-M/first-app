@@ -6,6 +6,7 @@ on:
       - main
     paths-ignore:
       - 'CHANGELOG.md'
+      - '.github/workflows/**'
 
 permissions:
   contents: write
@@ -13,34 +14,29 @@ permissions:
 jobs:
   changelog:
     runs-on: ubuntu-latest
-    container:
-      image: debian:bullseye
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Ensures the bot can see previous commits
 
-      - name: Install Dependencies
-        run: |
-          apt-get update
-          # Adding jq here fixes the 'jq: command not found' error
-          apt-get install -y git curl ca-certificates jq
+      - name: Fix Git Safe Directory
+        run: git config --global --add safe.directory /github/workspace
 
       - name: Generate Changelog
         uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
+          # This ensures it looks in the right place
+          args: --verbose
         env:
           OUTPUT: CHANGELOG.md
 
       - name: Commit and Push
         run: |
-          # Use --work-tree and --git-dir or simple config if in root
-          git config --global --add safe.directory /github/workspace
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md
+          # If no changes are detected, it won't crash
           git commit -m "docs: update changelog [skip ci]" || echo "No changes to commit"
           git push
