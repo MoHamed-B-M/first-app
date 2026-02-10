@@ -12,14 +12,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -35,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -48,10 +50,6 @@ import com.mohamed.calmplayer.ui.components.SquircleButton
 import com.mohamed.calmplayer.ui.components.SquircleShape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.offset
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 
 @Composable
 fun LibraryScreen(
@@ -91,7 +89,7 @@ fun LibraryScreen(
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 100.dp) // Space for player
+            contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             items(songs) { song ->
                 SongItem(song = song, onClick = { onSongClick(song) })
@@ -143,7 +141,7 @@ fun SongItem(song: Song, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer), // Placeholder bg
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
                 contentScale = ContentScale.Crop
             )
             
@@ -214,7 +212,6 @@ fun HomeScreen() {
         
         Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
             if (songs.isNotEmpty()) {
-                // Blob 1 (Main)
                 AsyncImage(
                     model = songs[0].albumArtUri,
                     contentDescription = null,
@@ -227,7 +224,6 @@ fun HomeScreen() {
                 )
                 
                 if (songs.size > 1) {
-                    // Blob 2
                     AsyncImage(
                         model = songs[1].albumArtUri,
                         contentDescription = null,
@@ -242,7 +238,6 @@ fun HomeScreen() {
                 }
                 
                 if (songs.size > 2) {
-                    // Blob 3
                     AsyncImage(
                         model = songs[2].albumArtUri,
                         contentDescription = null,
@@ -256,7 +251,6 @@ fun HomeScreen() {
                     )
                 }
             } else {
-                // Placeholder blob
                 Box(
                     modifier = Modifier
                         .size(200.dp)
@@ -266,7 +260,6 @@ fun HomeScreen() {
                 )
             }
             
-            // Large Play Button next to text
             SquircleButton(
                 onClick = { /* Play Mix */ },
                 modifier = Modifier

@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.sin
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 
 @Composable
 fun WavyProgressBar(
@@ -53,7 +55,7 @@ fun WavyProgressBar(
             start = Offset(0f, centerY),
             end = Offset(width, centerY),
             strokeWidth = 4.dp.toPx(),
-            cap = Stroke.Cap.Round
+            cap = StrokeCap.Round
         )
 
         // Draw Progress Wave
@@ -76,8 +78,8 @@ fun WavyProgressBar(
             color = color,
             style = Stroke(
                 width = 6.dp.toPx(),
-                cap = Stroke.Cap.Round,
-                join = Stroke.Join.Round
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
             )
         )
         

@@ -20,9 +20,12 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -38,7 +41,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             CalmMusicTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -55,16 +57,13 @@ fun MainScreen() {
     val navController = rememberNavController()
     val context = LocalContext.current
     
-    // Player State
     var currentSong by remember { mutableStateOf<Song?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
     var showPlayerSheet by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            // Handle permission result
-        }
+        onResult = { isGranted -> }
     )
 
     LaunchedEffect(Unit) {
@@ -82,7 +81,6 @@ fun MainScreen() {
     Scaffold(
         bottomBar = {
             Column {
-                // Mini Player
                 AnimatedVisibility(
                     visible = currentSong != null && !showPlayerSheet,
                     enter = slideInVertically(initialOffsetY = { it }),
