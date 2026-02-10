@@ -21,7 +21,7 @@ fun Modifier.glass(
     
     this
         .clip(shape)
-        .background(color)
+        .background(color = color)
         .then(
             if (showBorder) {
                 Modifier.border(
