@@ -1,0 +1,3 @@
+# Ignore build reports and generated HTML
+build/** linguist-generated=true
+*.html linguist-documentation=true
