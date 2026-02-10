@@ -4,16 +4,9 @@ on:
   push:
     branches:
       - main
-    # This ensures the build only starts if files in these paths change
-    paths:
-      - 'app/**'        # Monitors your Android app source code
-      - 'build.gradle'  # Monitors project-level gradle changes
-      - 'gradle/**'     # Monitors gradle wrapper changes
-    # This explicitly ignores documentation or workflow changes
-    paths-ignore:
-      - '**.md'
-      - '.github/workflows/changelog.yml'
-      - 'cliff.toml'
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -27,23 +20,16 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle' # Automatically caches gradle dependencies to speed up future builds
 
-      - name: Find and Run Gradle
-        run: |
-          GRADLEW_PATH=$(find . -name gradlew | head -n 1)
-          
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "❌ ERROR: gradlew not found."
-            exit 1
-          fi
-          
-          PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
-          chmod +x "$GRADLEW_PATH"
-          cd "$PROJECT_ROOT"
-          ./gradlew assembleDebug
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: CalmApp-Debug
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: app/build/outputs/apk/debug/*.apk
