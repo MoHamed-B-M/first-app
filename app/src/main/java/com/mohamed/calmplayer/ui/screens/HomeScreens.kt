@@ -48,6 +48,10 @@ import com.mohamed.calmplayer.ui.components.SquircleButton
 import com.mohamed.calmplayer.ui.components.SquircleShape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 
 @Composable
 fun LibraryScreen(
