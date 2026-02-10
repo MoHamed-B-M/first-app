@@ -49,9 +49,8 @@ import com.mohamed.calmplayer.ui.theme.CalmMusicTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val settingsViewModel: com.mohamed.calmplayer.domain.SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-        
         setContent {
+            val settingsViewModel: com.mohamed.calmplayer.domain.SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
             val themeConfig by settingsViewModel.themeState.collectAsState()
             val darkTheme = when (themeConfig) {
                 com.mohamed.calmplayer.data.ThemeConfig.LIGHT -> false

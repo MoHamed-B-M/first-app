@@ -21,16 +21,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,9 +87,9 @@ fun LibraryScreen(
                 style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
-            androidx.compose.material3.IconButton(onClick = onSettingsClick) {
+            IconButton(onClick = onSettingsClick) {
                 Icon(
-                    imageVector = androidx.compose.material.icons.filled.Settings,
+                    imageVector = Icons.Filled.Settings,
                     contentDescription = "Settings",
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -356,7 +356,7 @@ fun SearchScreen(
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(48.dp)) {
-                        Icon(androidx.compose.material.icons.filled.Close, contentDescription = "Clear")
+                        Icon(Icons.Filled.Close, contentDescription = "Clear")
                     }
                 }
             },
