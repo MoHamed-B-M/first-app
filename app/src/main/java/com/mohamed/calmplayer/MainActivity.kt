@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +38,7 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import android.content.ComponentName
+import com.mohamed.calmplayer.data.MediaLibraryHelper
 import com.mohamed.calmplayer.data.Song
 import com.mohamed.calmplayer.service.PlaybackService
 import com.mohamed.calmplayer.ui.components.PlayerSheet
@@ -47,8 +49,17 @@ import com.mohamed.calmplayer.ui.theme.CalmMusicTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val settingsViewModel: com.mohamed.calmplayer.domain.SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+        
         setContent {
-            CalmMusicTheme {
+            val themeConfig by settingsViewModel.themeState.collectAsState()
+            val darkTheme = when (themeConfig) {
+                com.mohamed.calmplayer.data.ThemeConfig.LIGHT -> false
+                com.mohamed.calmplayer.data.ThemeConfig.DARK -> true
+                com.mohamed.calmplayer.data.ThemeConfig.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            CalmMusicTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -103,98 +114,127 @@ fun MainScreen() {
         })
     }
 
-    Scaffold(
-        bottomBar = {
-            Column {
-                AnimatedVisibility(
-                    visible = currentSong != null && !showPlayerSheet,
-                    enter = slideInVertically(initialOffsetY = { it }),
-                    exit = slideOutVertically(targetOffsetY = { it })
-                ) {
-                    currentSong?.let { song ->
-                        MiniPlayer(
-                        song = song,
-                        isPlaying = isPlaying,
-                        onPlayPause = { 
-                            if (isPlaying) controller?.pause() else controller?.play()
-                        },
-                        onSkipNext = { controller?.seekToNext() },
-                        onClick = { showPlayerSheet = true }
-                    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            bottomBar = {
+                Column {
+                    AnimatedVisibility(
+                        visible = currentSong != null && !showPlayerSheet,
+                        enter = slideInVertically(initialOffsetY = { it }),
+                        exit = slideOutVertically(targetOffsetY = { it })
+                    ) {
+                        currentSong?.let { song ->
+                            MiniPlayer(
+                                song = song,
+                                isPlaying = isPlaying,
+                                onPlayPause = { 
+                                    if (isPlaying) controller?.pause() else controller?.play()
+                                },
+                                onSkipNext = { controller?.seekToNext() },
+                                onClick = { showPlayerSheet = true }
+                            )
+                        }
+                    }
+                    
+                    NavigationBar {
+                        val navBackStackEntry by navController.currentBackStackEntryAsState()
+                        val currentRoute = navBackStackEntry?.destination?.route
+
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
+                            label = { Text("Home") },
+                            selected = currentRoute == Screen.Home.route,
+                            onClick = {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                            label = { Text("Search") },
+                            selected = currentRoute == Screen.Search.route,
+                            onClick = {
+                                navController.navigate(Screen.Search.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Filled.LibraryMusic, contentDescription = "Library") },
+                            label = { Text("Library") },
+                            selected = currentRoute == Screen.Library.route,
+                            onClick = {
+                                navController.navigate(Screen.Library.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
                     }
                 }
-                
-                NavigationBar {
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentRoute = navBackStackEntry?.destination?.route
+            }
+        ) { innerPadding ->
+            CalmMusicNavHost(
+                navController = navController,
+                modifier = Modifier.padding(innerPadding),
+                onSongClick = { song ->
+                    currentSong = song
+                    showPlayerSheet = true
+                    controller?.let {
+                        val helper = MediaLibraryHelper(context)
+                        // Note: ideally blocked folders should be passed here too if you want to skip blocked songs in queue
+                        val allSongs = helper.getAllSongs() 
+                        val startIndex = allSongs.indexOfFirst { it.id == song.id }
+                        
+                        val mediaItems = allSongs.map {
+                            MediaItem.Builder()
+                                .setMediaId(it.id.toString())
+                                .setUri(it.uri)
+                                .build()
+                        }
+                        
+                        it.setMediaItems(mediaItems, startIndex, 0)
+                        it.prepare()
+                        it.play()
+                    }
+                },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
+                }
+            )
+        }
 
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                        label = { Text("Home") },
-                        selected = currentRoute == Screen.Home.route,
-                        onClick = {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
-                        label = { Text("Search") },
-                        selected = currentRoute == Screen.Search.route,
-                        onClick = {
-                            navController.navigate(Screen.Search.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Filled.LibraryMusic, contentDescription = "Library") },
-                        label = { Text("Library") },
-                        selected = currentRoute == Screen.Library.route,
-                        onClick = {
-                            navController.navigate(Screen.Library.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
+        var position by remember { mutableLongStateOf(0L) }
+        var duration by remember { mutableLongStateOf(0L) }
+
+        LaunchedEffect(isPlaying) {
+            if (isPlaying) {
+                while (true) {
+                    position = controller?.currentPosition ?: 0L
+                    duration = controller?.duration ?: 0L
+                    kotlinx.coroutines.delay(1000)
                 }
             }
         }
-    ) { innerPadding ->
-        CalmMusicNavHost(
-            navController = navController,
-            modifier = Modifier.padding(innerPadding),
-            onSongClick = { song ->
-                currentSong = song
-                showPlayerSheet = true
-                controller?.let {
-                    val mediaItem = MediaItem.Builder()
-                        .setMediaId(song.id.toString())
-                        .setUri(song.uri)
-                        .build()
-                    it.setMediaItem(mediaItem)
-                    it.prepare()
-                    it.play()
-                }
-            }
-        )
-        
+
         PlayerSheet(
             song = currentSong,
             isPlaying = isPlaying,
+            position = position,
+            duration = duration,
+            onPositionChange = { newPos -> controller?.seekTo(newPos) },
             onPlayPause = { 
                 if (isPlaying) controller?.pause() else controller?.play()
             },

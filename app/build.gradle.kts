@@ -38,6 +38,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.0")
     
     // Compose BOM
@@ -68,6 +69,9 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.2.0")
     implementation("androidx.media3:media3-ui:1.2.0")
     implementation("androidx.media3:media3-session:1.2.0")
+    
+    // DataStore for settings
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
     
     // Debug dependencies
     debugImplementation("androidx.compose.ui:ui-tooling")

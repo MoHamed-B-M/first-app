@@ -16,6 +16,7 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Search : Screen("search")
     object Library : Screen("library")
+    object Settings : Screen("settings")
     object Player : Screen("player")
 }
 
@@ -23,7 +24,8 @@ sealed class Screen(val route: String) {
 fun CalmMusicNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    onSongClick: (Song) -> Unit
+    onSongClick: (Song) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     NavHost(
         navController = navController,
@@ -39,7 +41,7 @@ fun CalmMusicNavHost(
                 slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(500))
             }
         ) {
-            HomeScreen()
+            HomeScreen(onSettingsClick = onSettingsClick, onSongClick = onSongClick)
         }
         
         composable(
@@ -51,7 +53,7 @@ fun CalmMusicNavHost(
                 slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, tween(500))
             }
         ) {
-            SearchScreen()
+            SearchScreen(onSongClick = onSongClick)
         }
         
         composable(
@@ -63,9 +65,19 @@ fun CalmMusicNavHost(
                 slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(500))
             }
         ) {
-            LibraryScreen(onSongClick = onSongClick)
+            LibraryScreen(onSongClick = onSongClick, onSettingsClick = onSettingsClick)
         }
         
-        // Player route if needed as a full screen, but likely it will be a bottom sheet
+        composable(
+            route = Screen.Settings.route,
+            enterTransition = {
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up, tween(500))
+            },
+            exitTransition = {
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, tween(500))
+            }
+        ) {
+            com.mohamed.calmplayer.ui.screens.SettingsScreen()
+        }
     }
 }

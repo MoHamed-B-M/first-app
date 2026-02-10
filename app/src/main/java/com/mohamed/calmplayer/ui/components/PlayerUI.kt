@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.draw.alpha
@@ -57,6 +59,9 @@ import com.mohamed.calmplayer.data.Song
 fun PlayerSheet(
     song: Song?,
     isPlaying: Boolean,
+    position: Long,
+    duration: Long,
+    onPositionChange: (Long) -> Unit,
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
@@ -69,7 +74,17 @@ fun PlayerSheet(
         exit = slideOutVertically(targetOffsetY = { it })
     ) {
         if (song != null) {
-            FullPlayerContent(song, isPlaying, onPlayPause, onSkipNext, onSkipPrevious, onDismiss)
+            FullPlayerContent(
+                song = song, 
+                isPlaying = isPlaying, 
+                position = position,
+                duration = duration,
+                onPositionChange = onPositionChange,
+                onPlayPause = onPlayPause, 
+                onSkipNext = onSkipNext, 
+                onSkipPrevious = onSkipPrevious, 
+                onCollapse = onDismiss
+            )
         }
     }
 }
@@ -78,6 +93,9 @@ fun PlayerSheet(
 fun FullPlayerContent(
     song: Song,
     isPlaying: Boolean,
+    position: Long,
+    duration: Long,
+    onPositionChange: (Long) -> Unit,
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
@@ -102,9 +120,23 @@ fun FullPlayerContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Drag Handle
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                    .clickable { onCollapse() }
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
             
             // Handle / Collapse
@@ -155,10 +187,15 @@ fun FullPlayerContent(
             Spacer(modifier = Modifier.height(32.dp))
             
             // Expressive Slider
-            var sliderPosition by remember { mutableStateOf(0.45f) }
+            val progress = remember(position, duration) {
+                if (duration > 0) position.toFloat() / duration.toFloat() else 0f
+            }
+            
             ExpressiveSlider(
-                progress = sliderPosition,
-                onValueChange = { sliderPosition = it }
+                progress = progress,
+                onValueChange = { newProgress ->
+                    onPositionChange((newProgress * duration).toLong())
+                }
             )
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -167,8 +204,8 @@ fun FullPlayerContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("1:21", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("3:10", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(formatTime(position), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(formatTime(duration), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             
             Spacer(modifier = Modifier.height(48.dp))
@@ -204,4 +241,11 @@ fun FullPlayerContent(
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
+}
+
+private fun formatTime(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%d:%02d", minutes, seconds)
 }

@@ -36,7 +36,7 @@ data class Artist(
 
 class MediaLibraryHelper(private val context: Context) {
 
-    fun getAllSongs(): List<Song> {
+    fun getAllSongs(blockedFolders: Set<String> = emptySet()): List<Song> {
         val songList = mutableListOf<Song>()
         val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
@@ -50,7 +50,8 @@ class MediaLibraryHelper(private val context: Context) {
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.ALBUM_ID,
-            MediaStore.Audio.Media.DURATION
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.DATA
         )
 
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
@@ -72,8 +73,14 @@ class MediaLibraryHelper(private val context: Context) {
                 val albumColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
                 val albumIdColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
                 val durationColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                val dataColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
 
                 while (it.moveToNext()) {
+                    val data = it.getString(dataColumn)
+                    val parentFolder = java.io.File(data).parent ?: ""
+                    
+                    if (blockedFolders.any { parentFolder.startsWith(it) }) continue
+
                     val id = it.getLong(idColumn)
                     val title = it.getString(titleColumn)
                     val artist = it.getString(artistColumn)
@@ -111,5 +118,41 @@ class MediaLibraryHelper(private val context: Context) {
                 numberOfSongs = songs.size
             )
         }
+    }
+
+    fun getMusicFolders(): Set<String> {
+        val folders = mutableSetOf<String>()
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val projection = arrayOf(MediaStore.Audio.Media.DATA)
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+
+        try {
+            val cursor: Cursor? = context.contentResolver.query(
+                collection,
+                projection,
+                selection,
+                null,
+                null
+            )
+
+            cursor?.use {
+                val dataColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+                while (it.moveToNext()) {
+                    val data = it.getString(dataColumn)
+                    val parentFolder = java.io.File(data).parent
+                    if (parentFolder != null) {
+                        folders.add(parentFolder)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return folders
     }
 }
