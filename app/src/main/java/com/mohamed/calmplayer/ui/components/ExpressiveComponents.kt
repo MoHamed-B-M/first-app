@@ -25,75 +25,23 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 
 @Composable
-fun WavyProgressBar(
+fun ExpressiveSlider(
     progress: Float,
+    onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
-    waveHeight: Dp = 6.dp,
-    waveLength: Dp = 24.dp,
     color: Color = MaterialTheme.colorScheme.primary,
-    trackColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    trackColor: Color = MaterialTheme.colorScheme.surfaceVariant
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "wave")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 2 * Math.PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phase"
+    Slider(
+        value = progress,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        colors = SliderDefaults.colors(
+            thumbColor = color,
+            activeTrackColor = color,
+            inactiveTrackColor = trackColor
+        )
     )
-
-    Canvas(modifier = modifier.height(waveHeight * 3).fillMaxWidth()) {
-        val width = size.width
-        val height = size.height
-        val centerY = height / 2
-
-        // Draw Track
-        drawLine(
-            color = trackColor,
-            start = Offset(0f, centerY),
-            end = Offset(width, centerY),
-            strokeWidth = 4.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-
-        // Draw Progress Wave
-        val progressWidth = width * progress
-        val path = Path()
-        path.moveTo(0f, centerY)
-
-        val waveLengthPx = waveLength.toPx()
-        val waveHeightPx = waveHeight.toPx()
-        
-        var x = 0f
-        while (x <= progressWidth) {
-            val y = centerY + sin((x / waveLengthPx) * 2 * Math.PI + phase).toFloat() * waveHeightPx
-            path.lineTo(x, y)
-            x += 2f // High precision for smoothness
-        }
-
-        drawPath(
-            path = path,
-            color = color,
-            style = Stroke(
-                width = 6.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
-        
-        // Draw Thumb
-        if (progress > 0) {
-             val thumbX = progressWidth
-             val thumbY = centerY + sin((thumbX / waveLengthPx) * 2 * Math.PI + phase).toFloat() * waveHeightPx
-             drawCircle(
-                 color = color,
-                 radius = 10.dp.toPx(),
-                 center = Offset(thumbX, thumbY)
-             )
-        }
-    }
 }
 
 val SquircleShape = GenericShape { size, _ ->

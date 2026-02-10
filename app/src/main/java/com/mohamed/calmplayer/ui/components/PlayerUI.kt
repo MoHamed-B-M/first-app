@@ -52,16 +52,18 @@ fun PlayerSheet(
     song: Song?,
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
-    onDismiss: () -> Unit
+    onSkipNext: () -> Unit,
+    onSkipPrevious: () -> Unit,
+    onDismiss: () -> Unit,
+    visible: Boolean
 ) {
-    if (song != null) {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
-            containerColor = MaterialTheme.colorScheme.surface,
-            scrimColor = Color.Black.copy(alpha = 0.5f)
-        ) {
-            FullPlayerContent(song, isPlaying, onPlayPause, onDismiss)
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(initialOffsetY = { it }),
+        exit = slideOutVertically(targetOffsetY = { it })
+    ) {
+        if (song != null) {
+            FullPlayerContent(song, isPlaying, onPlayPause, onSkipNext, onSkipPrevious, onDismiss)
         }
     }
 }
@@ -71,99 +73,129 @@ fun FullPlayerContent(
     song: Song,
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
+    onSkipNext: () -> Unit,
+    onSkipPrevious: () -> Unit,
     onCollapse: () -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-        // Handle / Collapse
-        IconButton(
-            onClick = onCollapse,
-            modifier = Modifier.align(Alignment.Start)
-        ) {
-            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Collapse")
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Large Album Art
+        // Blurred Background
         AsyncImage(
             model = song.albumArtUri,
             contentDescription = null,
             modifier = Modifier
-                .size(300.dp)
-                .clip(RoundedCornerShape(32.dp)) // Expressive large corners
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .fillMaxSize()
+                .alpha(0.3f)
+                .blur(40.dp),
             contentScale = ContentScale.Crop
         )
-        
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        // Title & Artist
+
         Column(
-            horizontalAlignment = Alignment.Start,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Wavy Progress Bar
-        WavyProgressBar(progress = 0.45f)
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("1:21", style = MaterialTheme.typography.labelMedium)
-            Text("3:10", style = MaterialTheme.typography.labelMedium)
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = {}, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Filled.SkipPrevious, null, modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Handle / Collapse
+            IconButton(
+                onClick = onCollapse,
+                modifier = Modifier.align(Alignment.Start)
+            ) {
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Collapse", tint = MaterialTheme.colorScheme.onSurface)
             }
             
-            SquircleButton(
-                onClick = onPlayPause,
-                modifier = Modifier.size(80.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Large Album Art
+            AsyncImage(
+                model = song.albumArtUri,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(320.dp)
+                    .clip(RoundedCornerShape(32.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(32.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentScale = ContentScale.Crop
+            )
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            // Title & Artist
+            Column(
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             
-            IconButton(onClick = {}, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Filled.SkipNext, null, modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Expressive Slider
+            var sliderPosition by remember { mutableStateOf(0.45f) }
+            ExpressiveSlider(
+                progress = sliderPosition,
+                onValueChange = { sliderPosition = it }
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("1:21", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("3:10", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            // Controls
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onSkipPrevious, modifier = Modifier.size(64.dp)) {
+                    Icon(Icons.Filled.SkipPrevious, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurface)
+                }
+                
+                SquircleButton(
+                    onClick = onPlayPause,
+                    modifier = Modifier.size(88.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(44.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                
+                IconButton(onClick = onSkipNext, modifier = Modifier.size(64.dp)) {
+                    Icon(Icons.Filled.SkipNext, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(48.dp))
         }
-        
-        Spacer(modifier = Modifier.height(32.dp))
     }
 }

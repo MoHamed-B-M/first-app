@@ -30,7 +30,15 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.media3.common.MediaItem
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
+import android.content.ComponentName
 import com.mohamed.calmplayer.data.Song
+import com.mohamed.calmplayer.service.PlaybackService
 import com.mohamed.calmplayer.ui.components.PlayerSheet
 import com.mohamed.calmplayer.ui.navigation.CalmMusicNavHost
 import com.mohamed.calmplayer.ui.navigation.Screen
@@ -60,13 +68,16 @@ fun MainScreen() {
     var currentSong by remember { mutableStateOf<Song?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
     var showPlayerSheet by remember { mutableStateOf(false) }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted -> }
-    )
+    
+    var controller by remember { mutableStateOf<MediaController?>(null) }
 
     LaunchedEffect(Unit) {
+        val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+        val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+        controllerFuture.addListener({
+            controller = controllerFuture.get()
+        }, MoreExecutors.directExecutor())
+        
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_AUDIO
         } else {
@@ -76,6 +87,15 @@ fun MainScreen() {
         if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
             permissionLauncher.launch(permission)
         }
+    }
+
+    // Synchronize isPlaying state from controller
+    LaunchedEffect(controller) {
+        controller?.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onIsPlayingChanged(isPlayingChanged: Boolean) {
+                isPlaying = isPlayingChanged
+            }
+        })
     }
 
     Scaffold(
@@ -88,11 +108,14 @@ fun MainScreen() {
                 ) {
                     currentSong?.let { song ->
                         MiniPlayer(
-                            song = song,
-                            isPlaying = isPlaying,
-                            onPlayPause = { isPlaying = !isPlaying },
-                            onClick = { showPlayerSheet = true }
-                        )
+                        song = song,
+                        isPlaying = isPlaying,
+                        onPlayPause = { 
+                            if (isPlaying) controller?.pause() else controller?.play()
+                        },
+                        onSkipNext = { controller?.seekToNext() },
+                        onClick = { showPlayerSheet = true }
+                    )
                     }
                 }
                 
@@ -151,19 +174,30 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding),
             onSongClick = { song ->
                 currentSong = song
-                isPlaying = true
                 showPlayerSheet = true
+                controller?.let {
+                    val mediaItem = MediaItem.Builder()
+                        .setMediaId(song.id.toString())
+                        .setUri(song.uri)
+                        .build()
+                    it.setMediaItem(mediaItem)
+                    it.prepare()
+                    it.play()
+                }
             }
         )
         
-        if (showPlayerSheet && currentSong != null) {
-            PlayerSheet(
-                song = currentSong,
-                isPlaying = isPlaying,
-                onPlayPause = { isPlaying = !isPlaying },
-                onDismiss = { showPlayerSheet = false }
-            )
-        }
+        PlayerSheet(
+            song = currentSong,
+            isPlaying = isPlaying,
+            onPlayPause = { 
+                if (isPlaying) controller?.pause() else controller?.play()
+            },
+            onSkipNext = { controller?.seekToNext() },
+            onSkipPrevious = { controller?.seekToPrevious() },
+            onDismiss = { showPlayerSheet = false },
+            visible = showPlayerSheet
+        )
     }
 }
 
@@ -172,6 +206,7 @@ fun MiniPlayer(
     song: Song,
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
+    onSkipNext: () -> Unit,
     onClick: () -> Unit
 ) {
     Surface(
@@ -221,7 +256,7 @@ fun MiniPlayer(
                 )
             }
             
-            IconButton(onClick = { /* Skip */ }) {
+            IconButton(onClick = onSkipNext) {
                 Icon(Icons.Filled.SkipNext, contentDescription = null)
             }
         }
