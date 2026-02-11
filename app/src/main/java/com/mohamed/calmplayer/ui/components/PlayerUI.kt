@@ -105,7 +105,7 @@ fun FullPlayerContent(
                 .background(MaterialTheme.colorScheme.surface)
                 .pointerInput(Unit) {
                     detectVerticalDragGestures { change, dragAmount ->
-                        if (dragAmount > 50) { // Swipe down to collapse
+                        if (dragAmount > 50f) { // Swipe down to collapse
                             onCollapse()
                         }
                     }

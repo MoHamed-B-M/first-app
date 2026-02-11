@@ -18,7 +18,8 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
@@ -111,15 +112,17 @@ fun ExpressiveWaveformSeekbar(
                 val x = i * (barWidth + gap)
                 val normalizedX = i.toFloat() / count
                 // Sine wave based height
-                val barHeight = (height * (0.3f + 0.5f * kotlin.math.sin(i * 0.3 + currentProgress * 20).let { if (it < 0) -it else it })).coerceIn(4.dp.toPx(), height)
+                val sinValue = kotlin.math.sin(i * 0.3f + currentProgress * 20f)
+                val absSin = if (sinValue < 0f) -sinValue else sinValue
+                val barHeight = (height * (0.3f + 0.5f * absSin)).coerceIn(4.dp.toPx(), height)
                 
                 val colorToUse = if (normalizedX <= currentProgress) color else inactiveColor
                 
                 drawRoundRect(
                     color = colorToUse,
-                    topLeft = androidx.compose.ui.geometry.Offset(x, (height - barHeight) / 2),
+                    topLeft = androidx.compose.ui.geometry.Offset(x, (height - barHeight) / 2f),
                     size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2)
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f)
                 )
             }
         }
