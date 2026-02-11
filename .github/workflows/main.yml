@@ -13,6 +13,8 @@ jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.get_version.outputs.VERSION }}
     
     steps:
       - name: Checkout Code
@@ -30,8 +32,14 @@ jobs:
           gradle-version: '8.12'
 
       - name: Fix Gradlew Permissions
-        # This fixes the "Permission denied" error by making the script executable
         run: chmod +x gradlew
+
+      - name: Extract Version Name
+        id: get_version
+        # This searches for versionName in your build.gradle and extracts the value
+        run: |
+          VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
@@ -57,9 +65,14 @@ jobs:
       - name: Publish GitHub Pre-Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: "CalmPlayer Build #${{ github.run_number }}"
-          body: "Automated Pre-Release for testing. Includes latest Material 3 Expressive updates."
+          # Uses the version from build.gradle (e.g., v1.0.0)
+          tag_name: v${{ needs.build.outputs.app_version }}
+          name: "CalmPlayer v${{ needs.build.outputs.app_version }}"
+          body: |
+            ## Release Notes
+            - **Build Number:** #${{ github.run_number }}
+            - **Material 3:** Expressive components integrated.
+            - **Status:** Automated Pre-Release.
           draft: false
           prerelease: true
           files: release-artifacts/*.apk
