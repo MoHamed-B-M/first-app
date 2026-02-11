@@ -45,40 +45,63 @@ fun ExpressiveSlider(
         )
     )
 }
-
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.ui.graphics.lerp
+
+import androidx.compose.ui.graphics.asComposePath
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Density
+import androidx.graphics.shapes.CornerRounding
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.toPath
+import android.graphics.Matrix
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MorphingShape(
-    morphProgress: Float,
-    isCircle: Boolean = false
-): GenericShape {
-    return remember(morphProgress, isCircle) {
-        GenericShape { size, _ ->
-            val w = size.width
-            val h = size.height
+    morphProgress: Float
+): Shape {
+    val squircle = remember {
+        RoundedPolygon(
+            numVertices = 4,
+            rounding = CornerRounding(0.4f)
+        )
+    }
+    val circle = remember {
+        RoundedPolygon.circle(numVertices = 4)
+    }
+    val morph = remember(squircle, circle) {
+        Morph(squircle, circle)
+    }
+    
+    return remember(morph, morphProgress) {
+        object : Shape {
+            private val androidPath = android.graphics.Path()
+            private val matrix = Matrix()
             
-            // Progress from Squircle (0f) to Circle (1f)
-            // For a circle, control points are roughly 0.55228f * radius
-            val k = 0.55228f
-            
-            // Squircle-ish control points (very rounded)
-            val sK = 0.2f
-            
-            val currentK = lerp(sK, k, morphProgress)
-            
-            moveTo(0f, h / 2)
-            cubicTo(0f, h / 2 - h / 2 * currentK, w / 2 - w / 2 * currentK, 0f, w / 2, 0f)
-            cubicTo(w / 2 + w / 2 * currentK, 0f, w, h / 2 - h / 2 * currentK, w, h / 2)
-            cubicTo(w, h / 2 + h / 2 * currentK, w / 2 + w / 2 * currentK, h, w / 2, h)
-            cubicTo(w / 2 - w / 2 * currentK, h, 0f, h / 2 + h / 2 * currentK, 0f, h / 2)
-            close()
+            override fun createOutline(
+                size: Size,
+                layoutDirection: LayoutDirection,
+                density: Density
+            ): Outline {
+                androidPath.reset()
+                morph.toPath(morphProgress, androidPath)
+                
+                // Scale and center
+                matrix.reset()
+                matrix.postScale(size.width / 2f, size.height / 2f)
+                matrix.postTranslate(size.width / 2f, size.height / 2f)
+                androidPath.transform(matrix)
+                
+                return Outline.Generic(androidPath.asComposePath())
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SquircleButton(
     onClick: () -> Unit,
@@ -89,7 +112,10 @@ fun SquircleButton(
 ) {
     val morphProgress by animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy, 
+            stiffness = Spring.StiffnessLow
+        ),
         label = "shapeMorph"
     )
     
@@ -97,7 +123,11 @@ fun SquircleButton(
     
     Box(
         modifier = modifier
-            .background(color, shape)
+            .graphicsLayer {
+                this.shape = shape
+                this.clip = true
+            }
+            .background(color)
             .clickable(onClick = onClick),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {

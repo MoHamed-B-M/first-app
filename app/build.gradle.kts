@@ -49,9 +49,13 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     
     // Material Design 3
-    implementation("androidx.compose.material3:material3:1.4.0-alpha05")
-    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.0.0-alpha07")
-    implementation("androidx.compose.material3:material3-adaptive:1.0.0-alpha12")
+    implementation("androidx.compose.material3:material3:1.5.0-alpha13")
+    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-alpha07")
+    implementation("androidx.compose.material3.adaptive:adaptive-layout:1.3.0-alpha07")
+    implementation("androidx.compose.material3.adaptive:adaptive-navigation:1.3.0-alpha07")
+    
+    // Graphics Shapes for morphing
+    implementation("androidx.graphics:graphics-shapes:1.0.1")
     
     // Material Icons
     implementation("androidx.compose.material:material-icons-core")

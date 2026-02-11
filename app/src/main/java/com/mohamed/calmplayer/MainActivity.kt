@@ -114,7 +114,9 @@ fun MainScreen() {
         })
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    SharedTransitionLayout {
+        Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             bottomBar = {
                 Column {
@@ -133,7 +135,7 @@ fun MainScreen() {
                                 onSkipNext = { controller?.seekToNext() },
                                 onClick = { showPlayerSheet = true },
                                 sharedTransitionScope = this@SharedTransitionLayout,
-                                animatedContentScope = this@AnimatedContent
+                                animatedContentScope = this@AnimatedVisibility
                             )
                         }
                     }
@@ -231,41 +233,36 @@ fun MainScreen() {
             }
         }
 
-        @OptIn(ExperimentalSharedTransitionApi::class)
-        SharedTransitionLayout {
-            AnimatedContent(
-                targetState = showPlayerSheet,
-                label = "playerTransition",
-                transitionSpec = {
-                    if (targetState) {
-                        slideInVertically { it } + fadeIn() togetherWith
-                                fadeOut()
-                    } else {
-                        fadeIn() togetherWith
-                                slideOutVertically { it } + fadeOut()
-                    }
-                }
-            ) { targetShowPlayerSheet ->
-                if (targetShowPlayerSheet) {
-                    PlayerSheet(
-                        song = currentSong,
-                        isPlaying = isPlaying,
-                        position = position,
-                        duration = duration,
-                        onPositionChange = { newPos -> controller?.seekTo(newPos) },
-                        onPlayPause = { 
-                            if (isPlaying) controller?.pause() else controller?.play()
-                        },
-                        onSkipNext = { controller?.seekToNext() },
-                        onSkipPrevious = { controller?.seekToPrevious() },
-                        onDismiss = { showPlayerSheet = false },
-                        visible = true,
-                        sharedTransitionScope = this@SharedTransitionLayout,
-                        animatedContentScope = this@AnimatedContent
-                    )
+        AnimatedContent(
+            targetState = showPlayerSheet,
+            label = "playerTransition",
+            transitionSpec = {
+                if (targetState) {
+                    slideInVertically { it } + fadeIn() togetherWith
+                            fadeOut()
                 } else {
-                    // This is handled by the Scaffold and MiniPlayer
+                    fadeIn() togetherWith
+                            slideOutVertically { it } + fadeOut()
                 }
+            }
+        ) { targetShowPlayerSheet ->
+            if (targetShowPlayerSheet) {
+                PlayerSheet(
+                    song = currentSong,
+                    isPlaying = isPlaying,
+                    position = position,
+                    duration = duration,
+                    onPositionChange = { newPos -> controller?.seekTo(newPos) },
+                    onPlayPause = { 
+                        if (isPlaying) controller?.pause() else controller?.play()
+                    },
+                    onSkipNext = { controller?.seekToNext() },
+                    onSkipPrevious = { controller?.seekToPrevious() },
+                    onDismiss = { showPlayerSheet = false },
+                    visible = true,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedContentScope = this@AnimatedContent
+                )
             }
         }
     }

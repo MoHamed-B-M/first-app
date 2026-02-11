@@ -129,7 +129,10 @@ fun FullPlayerContent(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxSize()
-                .alpha(0.3f)
+                .graphicsLayer {
+                    alpha = 0.3f
+                    clip = true
+                }
                 .blur(35.dp),
             contentScale = ContentScale.Crop
         )
