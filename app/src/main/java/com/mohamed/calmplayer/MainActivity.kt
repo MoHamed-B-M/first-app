@@ -135,7 +135,7 @@ fun MainScreen() {
                                 onSkipNext = { controller?.seekToNext() },
                                 onClick = { showPlayerSheet = true },
                                 sharedTransitionScope = this@SharedTransitionLayout,
-                                animatedContentScope = this@AnimatedVisibility
+                                animatedVisibilityScope = this
                             )
                         }
                     }
@@ -261,7 +261,7 @@ fun MainScreen() {
                     onDismiss = { showPlayerSheet = false },
                     visible = true,
                     sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedContentScope = this@AnimatedContent
+                    animatedVisibilityScope = this
                 )
             }
         }
@@ -278,7 +278,7 @@ fun MiniPlayer(
     onSkipNext: () -> Unit,
     onClick: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     with(sharedTransitionScope) {
     Surface(
@@ -302,7 +302,7 @@ fun MiniPlayer(
                     .size(48.dp)
                     .sharedElement(
                         rememberSharedContentState(key = "album_art_${song.id}"),
-                        animatedVisibilityScope = animatedContentScope
+                        animatedVisibilityScope = animatedVisibilityScope
                     )
                     .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop

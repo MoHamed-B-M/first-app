@@ -42,7 +42,7 @@ fun PlayerSheet(
     onDismiss: () -> Unit,
     visible: Boolean,
     sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     AnimatedVisibility(
         visible = visible,
@@ -61,7 +61,7 @@ fun PlayerSheet(
                 onSkipPrevious = onSkipPrevious, 
                 onCollapse = onDismiss,
                 sharedTransitionScope = sharedTransitionScope,
-                animatedContentScope = animatedContentScope
+                animatedVisibilityScope = animatedVisibilityScope
             )
         }
     }
@@ -80,7 +80,7 @@ fun FullPlayerContent(
     onSkipPrevious: () -> Unit,
     onCollapse: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     with(sharedTransitionScope) {
     Box(
@@ -149,7 +149,7 @@ fun FullPlayerContent(
                     .size(320.dp)
                     .sharedElement(
                         rememberSharedContentState(key = "album_art_${song.id}"),
-                        animatedVisibilityScope = animatedContentScope
+                        animatedVisibilityScope = animatedVisibilityScope
                     )
                     .clip(albumArtShape)
                     .border(1.dp, Color.White.copy(alpha = 0.1f), albumArtShape)
