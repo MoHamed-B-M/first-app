@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -8,7 +10,7 @@ plugins {
 fun getAutoVersionInfo(): Pair<Int, String> {
     val baseVersion = "1.0"
     val patchFile = file("version.properties")
-    val props = java.util.Properties()
+    val props = Properties()
     if (patchFile.exists()) {
         patchFile.inputStream().use { props.load(it) }
     }
@@ -36,12 +38,22 @@ android {
 
     val (vCode, vName) = getAutoVersionInfo()
 
-defaultConfig {
+    defaultConfig {
         applicationId = "com.mohamed.calmplayer"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.5-alpha"
+        versionCode = vCode
+        versionName = vName
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+        }
     }
 
     buildFeatures {
