@@ -25,7 +25,7 @@ sealed class Screen(val route: String) {
 fun CalmMusicNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     onSettingsClick: () -> Unit
 ) {
     NavHost(
@@ -80,6 +80,38 @@ fun CalmMusicNavHost(
         ) {
             com.mohamed.calmplayer.ui.screens.SettingsScreen(
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.Player.route,
+            enterTransition = {
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
+            },
+            exitTransition = {
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
+            }
+        ) {
+            val playerViewModel: com.mohamed.calmplayer.domain.PlayerViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val currentSong by playerViewModel.currentSong.collectAsState()
+            val isPlaying by playerViewModel.isPlaying.collectAsState()
+            val position by playerViewModel.position.collectAsState()
+            val duration by playerViewModel.duration.collectAsState()
+
+            // Handle the back button to navigate back from the player
+            com.mohamed.calmplayer.ui.components.PlayerSheet(
+                song = currentSong,
+                isPlaying = isPlaying,
+                position = position,
+                duration = duration,
+                onPositionChange = { playerViewModel.seekTo(it) },
+                onPlayPause = { playerViewModel.togglePlayPause() },
+                onSkipNext = { playerViewModel.skipNext() },
+                onSkipPrevious = { playerViewModel.skipPrevious() },
+                onDismiss = { navController.popBackStack() },
+                visible = true,
+                sharedTransitionScope = null, // Disable shared transition for now to fix stability
+                animatedVisibilityScope = null
             )
         }
     }

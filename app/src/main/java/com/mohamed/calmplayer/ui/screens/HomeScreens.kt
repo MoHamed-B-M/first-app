@@ -58,7 +58,7 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun LibraryScreen(
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: com.mohamed.calmplayer.domain.SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
@@ -114,7 +114,7 @@ fun LibraryScreen(
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             items(songs) { song ->
-                SongItem(song = song, onClick = { onSongClick(song) })
+                SongItem(song = song, onClick = { onSongClick(song, songs) })
             }
         }
     }
@@ -196,7 +196,7 @@ fun SongItem(song: Song, onClick: () -> Unit) {
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     viewModel: com.mohamed.calmplayer.domain.SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val context = LocalContext.current
@@ -316,7 +316,7 @@ fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
-    onSongClick: (Song) -> Unit
+    onSongClick: (Song, List<Song>) -> Unit
 ) {
     val context = LocalContext.current
     val helper = remember { MediaLibraryHelper(context) }
@@ -376,7 +376,7 @@ fun SearchScreen(
             ) {
                 items(filteredSongs) { song ->
                     SongItem(song = song, onClick = { 
-                        onSongClick(song)
+                        onSongClick(song, filteredSongs)
                         active = false
                     })
                 }

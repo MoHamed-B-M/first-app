@@ -4,11 +4,39 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Versioning Protocol: Auto-increment patch number and code
+fun getAutoVersionInfo(): Pair<Int, String> {
+    val baseVersion = "1.0"
+    val patchFile = file("version.properties")
+    val props = java.util.Properties()
+    if (patchFile.exists()) {
+        patchFile.inputStream().use { props.load(it) }
+    }
+    
+    // Starting patch for next build is 5 (so we start at 4 to increment to 5 on first release build)
+    var patch = props.getProperty("patch", "4").toInt()
+    var code = props.getProperty("code", "4").toInt()
+    
+    val isReleaseTask = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+    
+    if (isReleaseTask) {
+        patch++
+        code++
+        props.setProperty("patch", patch.toString())
+        props.setProperty("code", code.toString())
+        patchFile.outputStream().use { props.store(it, null) }
+    }
+    
+    return code to "${baseVersion}.${patch}-alpha"
+}
+
 android {
     namespace = "com.mohamed.calmplayer"
     compileSdk = 35
 
-    defaultConfig {
+    val (vCode, vName) = getAutoVersionInfo()
+
+defaultConfig {
         applicationId = "com.mohamed.calmplayer"
         minSdk = 24
         targetSdk = 35

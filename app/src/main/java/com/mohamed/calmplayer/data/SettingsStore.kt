@@ -20,6 +20,7 @@ class SettingsStore(private val context: Context) {
     companion object {
         val THEME_KEY = stringPreferencesKey("theme")
         val BLOCKED_FOLDERS_KEY = stringSetPreferencesKey("blocked_folders")
+        val MUSIC_FOLDER_URI_KEY = stringPreferencesKey("music_folder_uri")
     }
 
     val themeFlow: Flow<ThemeConfig> = context.dataStore.data.map { preferences ->
@@ -29,6 +30,16 @@ class SettingsStore(private val context: Context) {
 
     val blockedFoldersFlow: Flow<Set<String>> = context.dataStore.data.map { preferences ->
         preferences[BLOCKED_FOLDERS_KEY] ?: emptySet()
+    }
+
+    val musicFolderUriFlow: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[MUSIC_FOLDER_URI_KEY]
+    }
+
+    suspend fun setMusicFolderUri(uri: String) {
+        context.dataStore.edit { preferences ->
+            preferences[MUSIC_FOLDER_URI_KEY] = uri
+        }
     }
 
     suspend fun setTheme(theme: ThemeConfig) {

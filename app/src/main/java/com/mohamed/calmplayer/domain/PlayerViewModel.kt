@@ -32,8 +32,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _duration = MutableStateFlow(0L)
     val duration = _duration.asStateFlow()
 
+    private val _isControllerReady = MutableStateFlow(false)
+    val isControllerReady = _isControllerReady.asStateFlow()
+
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
+
+    // Keep a local mapping of songs by mediaId for transitions
+    private var songMap: Map<String, Song> = emptyMap()
+    private var orderedSongs: List<Song> = emptyList()
 
     private var sleepTimerJob: Job? = null
     private val _sleepTimerActive = MutableStateFlow(false)
@@ -43,10 +50,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val sessionToken = SessionToken(application, ComponentName(application, PlaybackService::class.java))
         controllerFuture = MediaController.Builder(application, sessionToken).buildAsync()
         controllerFuture?.addListener({
-            controller = controllerFuture?.get()
-            setupController()
+            try {
+                controller = controllerFuture?.get()
+                _isControllerReady.value = true
+                setupController()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }, MoreExecutors.directExecutor())
-        
+
         startProgressUpdate()
     }
 
@@ -55,10 +67,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
             }
-            
+
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                // Update current song from media item if needed
-                // This requires mapping media item ID back to Song
+                // Map the current media item back to our Song data class
+                mediaItem?.mediaId?.let { mediaId ->
+                    songMap[mediaId]?.let { song ->
+                        _currentSong.value = song
+                    }
+                }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) {
+                    _duration.value = controller?.duration ?: 0L
+                }
             }
         })
     }
@@ -67,27 +89,35 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             while (true) {
                 controller?.let {
-                    _position.value = it.currentPosition
-                    _duration.value = it.duration
+                    if (it.isPlaying || it.playbackState == Player.STATE_READY) {
+                        _position.value = it.currentPosition.coerceAtLeast(0L)
+                        val dur = it.duration
+                        if (dur > 0) _duration.value = dur
+                    }
                 }
-                delay(500)
+                delay(250) // ~4 updates/second for smoother seekbar
             }
         }
     }
 
     fun playSong(song: Song, allSongs: List<Song>) {
         _currentSong.value = song
-        controller?.let {
+
+        // Build a local mapping for media transitions
+        orderedSongs = allSongs
+        songMap = allSongs.associateBy { it.id.toString() }
+
+        controller?.let { ctrl ->
             val startIndex = allSongs.indexOfFirst { it.id == song.id }
-            val mediaItems = allSongs.map {
+            val mediaItems = allSongs.map { s ->
                 MediaItem.Builder()
-                    .setMediaId(it.id.toString())
-                    .setUri(it.uri)
+                    .setMediaId(s.id.toString())
+                    .setUri(s.uri)
                     .build()
             }
-            it.setMediaItems(mediaItems, if (startIndex != -1) startIndex else 0, 0)
-            it.prepare()
-            it.play()
+            ctrl.setMediaItems(mediaItems, if (startIndex != -1) startIndex else 0, 0L)
+            ctrl.prepare()
+            ctrl.play()
         }
     }
 
@@ -98,11 +128,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun skipNext() {
-        controller?.seekToNext()
+        controller?.let {
+            if (it.hasNextMediaItem()) {
+                it.seekToNext()
+            }
+        }
     }
 
     fun skipPrevious() {
-        controller?.seekToPrevious()
+        controller?.let {
+            if (it.hasPreviousMediaItem()) {
+                it.seekToPrevious()
+            }
+        }
     }
 
     fun seekTo(pos: Long) {
@@ -116,19 +154,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         sleepTimerJob = viewModelScope.launch {
             val totalSeconds = minutes * 60
             val fadeStartSeconds = (totalSeconds - 300).coerceAtLeast(0)
-            
+
             delay(fadeStartSeconds * 1000L)
-            
+
             // Fading over 5 minutes (300 seconds)
             val fadeSteps = 100
             val stepDelay = 3000L // 300 / 100 = 3 seconds per step
-            
+
             for (i in fadeSteps downTo 0) {
                 val volume = i / 100f
                 controller?.volume = volume
                 delay(stepDelay)
             }
-            
+
             controller?.pause()
             controller?.volume = 1.0f // Reset for next play
             _sleepTimerActive.value = false

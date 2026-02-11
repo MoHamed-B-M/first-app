@@ -12,6 +12,7 @@
 
     <application
         android:allowBackup="true"
+        android:hardwareAccelerated="true"
         android:icon="@android:drawable/ic_media_play"
         android:label="Calm Music"
         android:roundIcon="@android:drawable/ic_media_play"

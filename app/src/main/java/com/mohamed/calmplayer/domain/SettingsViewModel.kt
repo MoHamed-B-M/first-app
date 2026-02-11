@@ -25,6 +25,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         initialValue = emptySet()
     )
 
+    val musicFolderUri: StateFlow<String?> = settingsStore.musicFolderUriFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+
+    fun setMusicFolderUri(uri: String) {
+        viewModelScope.launch {
+            settingsStore.setMusicFolderUri(uri)
+        }
+    }
+
     fun setTheme(theme: ThemeConfig) {
         viewModelScope.launch {
             settingsStore.setTheme(theme)
