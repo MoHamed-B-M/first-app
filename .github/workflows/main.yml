@@ -14,6 +14,7 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-latest
     outputs:
+      # This maps the step output to the job output so the 'release' job can see it
       app_version: ${{ steps.get_version.outputs.VERSION }}
     
     steps:
@@ -36,10 +37,12 @@ jobs:
 
       - name: Extract Version Name
         id: get_version
-        # This searches for versionName in your build.gradle and extracts the value
         run: |
-          VERSION=$(grep "versionName" app/build.gradle | awk -F'"' '{print $2}')
+          # Finds the versionName line, removes whitespace, and extracts the text between quotes
+          VERSION=$(grep "versionName" app/build.gradle | head -n 1 | awk -F'"' '{print $2}')
+          if [ -z "$VERSION" ]; then VERSION="0.0.1-debug"; fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted Version: $VERSION"
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
@@ -65,16 +68,14 @@ jobs:
       - name: Publish GitHub Pre-Release
         uses: softprops/action-gh-release@v2
         with:
-          # Uses the version from build.gradle (e.g., v1.0.0)
+          # This pulls the version name directly from the build job's output
           tag_name: v${{ needs.build.outputs.app_version }}
           name: "CalmPlayer v${{ needs.build.outputs.app_version }}"
-          body: |
-            ## Release Notes
-            - **Build Number:** #${{ github.run_number }}
-            - **Material 3:** Expressive components integrated.
-            - **Status:** Automated Pre-Release.
+          body: "Automated Build of CalmPlayer. Version: ${{ needs.build.outputs.app_version }}"
           draft: false
           prerelease: true
+          # This helps if you push the same version twice during testing
+          make_latest: true
           files: release-artifacts/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
