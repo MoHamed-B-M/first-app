@@ -22,10 +22,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Debug - List Files
-        # This helps us see if the files actually exist in the runner
-        run: ls -R
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -41,11 +37,12 @@ jobs:
       - name: Auto-Increment Version
         id: get_version
         run: |
-          # 1. Search for the app-level build.gradle (looking for the one that contains 'versionName')
-          GRADLE_FILE=$(grep -l "versionName" $(find . -name "*.gradle") | head -n 1)
+          # 1. Improved search: Find files, exclude system directories, look for 'versionName'
+          # Use -type f to only look at files and -not -path to skip the .gradle folder
+          GRADLE_FILE=$(find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -not -path "*/.*/*" | xargs grep -l "versionName" | head -n 1)
           
           if [ -z "$GRADLE_FILE" ]; then
-            echo "ERROR: Could not find a build.gradle file containing 'versionName'"
+            echo "ERROR: Could not find a build.gradle file containing 'versionName' outside of hidden folders."
             exit 1
           fi
           
@@ -54,9 +51,12 @@ jobs:
           
           # 2. Extract the current version
           OLD_VER=$(grep "versionName" "$GRADLE_FILE" | head -n 1 | awk -F'"' '{print $2}')
+          
+          # If version is empty, default to 1.0.0
+          if [ -z "$OLD_VER" ]; then OLD_VER="1.0.0"; fi
           echo "Current Version: $OLD_VER"
           
-          # 3. Logic to increment the Patch
+          # 3. Increment Patch version
           IFS='.' read -r major minor patch <<< "$OLD_VER"
           NEW_PATCH=$((patch + 1))
           NEW_VER="$major.$minor.$NEW_PATCH"
@@ -106,7 +106,7 @@ jobs:
           generate_release_notes: true
           body: |
             ### 🎵 CalmPlayer Automated Build
-            Automated versioning and build for Oppo Reno 3.
+            This build was automatically versioned and compiled for testing.
           draft: false
           prerelease: true
           files: release-artifacts/**/*.apk
