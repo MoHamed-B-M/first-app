@@ -37,7 +37,7 @@ jobs:
       - name: Auto-Increment Version
         id: get_version
         run: |
-          # 1. Find the build.gradle file that actually contains a version definition
+          # 1. Find the build.gradle file
           GRADLE_FILE=$(find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -not -path "*/.*/*" | xargs grep -l "versionName" | head -n 1)
           
           if [ -z "$GRADLE_FILE" ]; then
@@ -45,24 +45,25 @@ jobs:
             exit 1
           fi
           
-          echo "Using file: $GRADLE_FILE"
           echo "GRADLE_PATH=$GRADLE_FILE" >> $GITHUB_ENV
 
-          # 2. Extract version using a flexible regex (handles " or ' and spaces)
-          OLD_VER=$(grep "versionName" "$GRADLE_FILE" | sed -E 's/.*versionName[ =]+["'\'']([^"'\'']+)["'\''].*/\1/')
-          echo "Extracted Version: $OLD_VER"
-
-          # 3. Increment Patch (e.g., 1.0.0 -> 1.0.1)
-          IFS='.' read -r major minor patch <<< "$OLD_VER"
-          NEW_PATCH=$((patch + 1))
-          NEW_VER="$major.$minor.$NEW_PATCH"
-          echo "New Version: $NEW_VER"
-
-          # 4. Perform the replacement in the file
-          # This regex finds the line and replaces just the version number part
-          sed -i -E "s/(versionName[ =]+[\"'])$OLD_VER([\"'])/\1$NEW_VER\2/" "$GRADLE_FILE"
+          # 2. Extract version (Handles versions like 1.0.0 or 1.0.0-alpha)
+          # This regex grabs the numeric part only for incrementing
+          RAW_VER=$(grep "versionName" "$GRADLE_FILE" | sed -E 's/.*versionName[ =]+["'\'']([^"'\'']+)["'\''].*/\1/')
+          NUMERIC_VER=$(echo $RAW_VER | cut -d'-' -f1)
           
-          # 5. Export for GitHub
+          # 3. Increment Patch (1.0.0 -> 1.0.1)
+          IFS='.' read -r major minor patch <<< "$NUMERIC_VER"
+          NEW_PATCH=$((patch + 1))
+          
+          # 4. Define the NEW version with the alpha suffix
+          NEW_VER="$major.$minor.$NEW_PATCH-alpha"
+          echo "Bumping from $RAW_VER to $NEW_VER"
+
+          # 5. Update the file
+          sed -i -E "s/(versionName[ =]+[\"'])$RAW_VER([\"'])/\1$NEW_VER\2/" "$GRADLE_FILE"
+          
+          # 6. Export for next steps
           echo "VERSION=$NEW_VER" >> $GITHUB_OUTPUT
           echo "NEW_VERSION=$NEW_VER" >> $GITHUB_ENV
 
@@ -71,9 +72,9 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Check if the file actually changed before trying to commit
           if git diff --exit-code "${{ env.GRADLE_PATH }}"; then
-            echo "No changes detected in build.gradle. Check your versionName format."
+            echo "No changes detected. Forcing update for versioning."
+            # If for some reason sed didn't change it, we stop here to avoid loops
           else
             git add "${{ env.GRADLE_PATH }}"
             git commit -m "chore: bump version to v${{ env.NEW_VERSION }} [skip ci]"
@@ -103,12 +104,13 @@ jobs:
       - name: Publish GitHub Pre-Release
         uses: softprops/action-gh-release@v2
         with:
+          # This creates the tag as v1.0.1-alpha
           tag_name: v${{ needs.build.outputs.app_version }}
           name: "CalmPlayer v${{ needs.build.outputs.app_version }}"
           generate_release_notes: true
           body: |
-            ### 🎵 CalmPlayer Automated Build
-            Versioning handled automatically by GitHub Actions.
+            ### 🛠️ Alpha Build
+            This is an automated alpha build for testing on ColorOS/Oppo Reno 3.
           draft: false
           prerelease: true
           files: release-artifacts/**/*.apk
