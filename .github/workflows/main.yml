@@ -1,19 +1,19 @@
-name: Build APK
+name: Build and Release APK
 
 on:
   push:
     branches:
       - main
-  # Allows you to manually trigger the build from the GitHub UI
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # Crucial: Allows the action to create a release and upload files
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    outputs:
+      artifact_name: CalmApp-Debug-APK # Passing the name to the next job
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -21,27 +21,43 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17' # Required for AGP 8.7.0
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          # This automatically handles the Gradle 8.12 installation and caching
           gradle-version: '8.12' 
 
-      - name: Grant Execute Permission for Gradlew
-        run: chmod +x gradlew
-
       - name: Build Debug APK
-        # We use --no-daemon to save memory on the runner
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: CalmApp-Debug-APK
-          # Using the global wildcard to find the APK wherever Gradle puts it
-          path: "**/build/outputs/apk/debug/*.apk"
-          # Retain the APK for 7 days (saves storage space)
+          path: "app/build/outputs/apk/debug/*.apk"
           retention-days: 7
+
+  release:
+    needs: build # Only runs if the build succeeds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download APK from Build Job
+        uses: actions/download-artifact@v4
+        with:
+          name: CalmApp-Debug-APK
+          path: release-artifacts
+
+      - name: Create GitHub Pre-Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Automatically names the tag with the build number (e.g., v1, v2)
+          tag_name: v${{ github.run_number }}
+          name: "Pre-Release Build #${{ github.run_number }}"
+          body: "Automated pre-release from the latest commit. This build contains the Material 3 Expressive updates."
+          draft: false
+          prerelease: true # Marks it as a Pre-Release
+          files: release-artifacts/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
