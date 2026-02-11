@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -19,9 +20,7 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"  // Updated for Kotlin 1.9.22
-    }
+    // With Kotlin 2.0+, the Compose compiler is a Gradle plugin (applied in the plugins block).
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -42,7 +41,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.8.0")
     
     // Compose BOM
-    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    implementation(platform("androidx.compose:compose-bom:2025.01.00"))
     
     // Compose UI dependencies
     implementation("androidx.compose.ui:ui")
@@ -50,7 +49,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     
     // Material Design 3
-    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material3:material3:1.4.0-alpha05")
+    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.0.0-alpha07")
+    implementation("androidx.compose.material3:material3-adaptive:1.0.0-alpha12")
     
     // Material Icons
     implementation("androidx.compose.material:material-icons-core")

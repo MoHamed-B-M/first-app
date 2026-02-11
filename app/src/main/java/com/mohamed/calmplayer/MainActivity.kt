@@ -8,9 +8,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.*
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -130,7 +131,9 @@ fun MainScreen() {
                                     if (isPlaying) controller?.pause() else controller?.play()
                                 },
                                 onSkipNext = { controller?.seekToNext() },
-                                onClick = { showPlayerSheet = true }
+                                onClick = { showPlayerSheet = true },
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedContentScope = this@AnimatedContent
                             )
                         }
                     }
@@ -228,31 +231,58 @@ fun MainScreen() {
             }
         }
 
-        PlayerSheet(
-            song = currentSong,
-            isPlaying = isPlaying,
-            position = position,
-            duration = duration,
-            onPositionChange = { newPos -> controller?.seekTo(newPos) },
-            onPlayPause = { 
-                if (isPlaying) controller?.pause() else controller?.play()
-            },
-            onSkipNext = { controller?.seekToNext() },
-            onSkipPrevious = { controller?.seekToPrevious() },
-            onDismiss = { showPlayerSheet = false },
-            visible = showPlayerSheet
-        )
+        @OptIn(ExperimentalSharedTransitionApi::class)
+        SharedTransitionLayout {
+            AnimatedContent(
+                targetState = showPlayerSheet,
+                label = "playerTransition",
+                transitionSpec = {
+                    if (targetState) {
+                        slideInVertically { it } + fadeIn() togetherWith
+                                fadeOut()
+                    } else {
+                        fadeIn() togetherWith
+                                slideOutVertically { it } + fadeOut()
+                    }
+                }
+            ) { targetShowPlayerSheet ->
+                if (targetShowPlayerSheet) {
+                    PlayerSheet(
+                        song = currentSong,
+                        isPlaying = isPlaying,
+                        position = position,
+                        duration = duration,
+                        onPositionChange = { newPos -> controller?.seekTo(newPos) },
+                        onPlayPause = { 
+                            if (isPlaying) controller?.pause() else controller?.play()
+                        },
+                        onSkipNext = { controller?.seekToNext() },
+                        onSkipPrevious = { controller?.seekToPrevious() },
+                        onDismiss = { showPlayerSheet = false },
+                        visible = true,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedContentScope = this@AnimatedContent
+                    )
+                } else {
+                    // This is handled by the Scaffold and MiniPlayer
+                }
+            }
+        }
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MiniPlayer(
     song: Song,
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedContentScope
 ) {
+    with(sharedTransitionScope) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -272,6 +302,10 @@ fun MiniPlayer(
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
+                    .sharedElement(
+                        rememberSharedContentState(key = "album_art_${song.id}"),
+                        animatedVisibilityScope = animatedContentScope
+                    )
                     .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )
@@ -304,5 +338,6 @@ fun MiniPlayer(
                 Icon(Icons.Filled.SkipNext, contentDescription = null)
             }
         }
+    }
     }
 }

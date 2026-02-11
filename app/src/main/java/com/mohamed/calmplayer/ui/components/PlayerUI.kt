@@ -39,7 +39,16 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ConnectedButton
+import androidx.compose.material3.ConnectedButtonGroup
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,7 +63,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mohamed.calmplayer.data.Song
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun PlayerSheet(
     song: Song?,
@@ -66,7 +75,9 @@ fun PlayerSheet(
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
     onDismiss: () -> Unit,
-    visible: Boolean
+    visible: Boolean,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedContentScope
 ) {
     AnimatedVisibility(
         visible = visible,
@@ -83,12 +94,15 @@ fun PlayerSheet(
                 onPlayPause = onPlayPause, 
                 onSkipNext = onSkipNext, 
                 onSkipPrevious = onSkipPrevious, 
-                onCollapse = onDismiss
+                onCollapse = onDismiss,
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope
             )
         }
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun FullPlayerContent(
     song: Song,
@@ -99,8 +113,11 @@ fun FullPlayerContent(
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
-    onCollapse: () -> Unit
+    onCollapse: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedContentScope
 ) {
+    with(sharedTransitionScope) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -113,7 +130,7 @@ fun FullPlayerContent(
             modifier = Modifier
                 .fillMaxSize()
                 .alpha(0.3f)
-                .blur(40.dp),
+                .blur(35.dp),
             contentScale = ContentScale.Crop
         )
 
@@ -150,13 +167,24 @@ fun FullPlayerContent(
             Spacer(modifier = Modifier.height(32.dp))
             
             // Large Album Art
+            val albumArtMorph by animateFloatAsState(
+                targetValue = 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
+                label = "albumArtMorph"
+            )
+            val albumArtShape = MorphingShape(albumArtMorph)
+
             AsyncImage(
                 model = song.albumArtUri,
                 contentDescription = null,
                 modifier = Modifier
                     .size(320.dp)
-                    .clip(RoundedCornerShape(32.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(32.dp))
+                    .sharedElement(
+                        rememberSharedContentState(key = "album_art_${song.id}"),
+                        animatedVisibilityScope = animatedContentScope
+                    )
+                    .clip(albumArtShape)
+                    .border(1.dp, Color.White.copy(alpha = 0.1f), albumArtShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentScale = ContentScale.Crop
             )
@@ -211,36 +239,48 @@ fun FullPlayerContent(
             Spacer(modifier = Modifier.height(48.dp))
             
             // Controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onSkipPrevious, modifier = Modifier.size(64.dp)) {
-                    Icon(Icons.Filled.SkipPrevious, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurface)
-                }
-                
-                SquircleButton(
-                    onClick = onPlayPause,
-                    modifier = Modifier.size(88.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(44.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                
-                IconButton(onClick = onSkipNext, modifier = Modifier.size(64.dp)) {
-                    Icon(Icons.Filled.SkipNext, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurface)
+            OptIn(ExperimentalMaterial3ExpressiveApi::class) {
+                ConnectedButtonGroup {
+                    IconButton(
+                        onClick = onSkipPrevious,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .connectedButton()
+                    ) {
+                        Icon(Icons.Filled.SkipPrevious, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    
+                    SquircleButton(
+                        onClick = onPlayPause,
+                        modifier = Modifier
+                            .size(96.dp)
+                            .connectedButton(),
+                        isPlaying = isPlaying,
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = onSkipNext,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .connectedButton()
+                    ) {
+                        Icon(Icons.Filled.SkipNext, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
             
             Spacer(modifier = Modifier.height(48.dp))
         }
     }
+}
 }
 
 private fun formatTime(ms: Long): String {

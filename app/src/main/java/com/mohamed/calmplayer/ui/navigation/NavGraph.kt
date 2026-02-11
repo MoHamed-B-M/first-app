@@ -1,7 +1,8 @@
 package com.mohamed.calmplayer.ui.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -35,10 +36,10 @@ fun CalmMusicNavHost(
         composable(
             route = Screen.Home.route,
             enterTransition = {
-                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(500))
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             },
             exitTransition = {
-                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(500))
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             }
         ) {
             HomeScreen(onSettingsClick = onSettingsClick, onSongClick = onSongClick)
@@ -47,10 +48,10 @@ fun CalmMusicNavHost(
         composable(
             route = Screen.Search.route,
             enterTransition = {
-                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up, tween(500))
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             },
             exitTransition = {
-                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, tween(500))
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             }
         ) {
             SearchScreen(onSongClick = onSongClick)
@@ -59,10 +60,10 @@ fun CalmMusicNavHost(
         composable(
             route = Screen.Library.route,
             enterTransition = {
-                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(500))
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             },
             exitTransition = {
-                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(500))
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             }
         ) {
             LibraryScreen(onSongClick = onSongClick, onSettingsClick = onSettingsClick)
@@ -71,10 +72,10 @@ fun CalmMusicNavHost(
         composable(
             route = Screen.Settings.route,
             enterTransition = {
-                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up, tween(500))
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             },
             exitTransition = {
-                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, tween(500))
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             }
         ) {
             com.mohamed.calmplayer.ui.screens.SettingsScreen()

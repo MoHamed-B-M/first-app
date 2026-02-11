@@ -46,34 +46,58 @@ fun ExpressiveSlider(
     )
 }
 
-val SquircleShape = GenericShape { size, _ ->
-    val radius = size.width / 4 // Adjust for squircle-ness (hyperellipse approximation)
-    
-    // Simple approach: Rounded rect with large corners, or a true superellipse path
-    // For "Expressive" look, let's use a very rounded rect which is close enough for standard UI
-    // Or we can use a cubic bezier approximation for a smoother squircle
-    
-    val w = size.width
-    val h = size.height
-    
-    moveTo(0f, h / 2)
-    cubicTo(0f, 0f, 0f, 0f, w / 2, 0f) // Top-Left
-    cubicTo(w, 0f, w, 0f, w, h / 2) // Top-Right
-    cubicTo(w, h, w, h, w / 2, h) // Bottom-Right
-    cubicTo(0f, h, 0f, h, 0f, h / 2) // Bottom-Left
-    close()
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.ui.graphics.lerp
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun MorphingShape(
+    morphProgress: Float,
+    isCircle: Boolean = false
+): GenericShape {
+    return remember(morphProgress, isCircle) {
+        GenericShape { size, _ ->
+            val w = size.width
+            val h = size.height
+            
+            // Progress from Squircle (0f) to Circle (1f)
+            // For a circle, control points are roughly 0.55228f * radius
+            val k = 0.55228f
+            
+            // Squircle-ish control points (very rounded)
+            val sK = 0.2f
+            
+            val currentK = lerp(sK, k, morphProgress)
+            
+            moveTo(0f, h / 2)
+            cubicTo(0f, h / 2 - h / 2 * currentK, w / 2 - w / 2 * currentK, 0f, w / 2, 0f)
+            cubicTo(w / 2 + w / 2 * currentK, 0f, w, h / 2 - h / 2 * currentK, w, h / 2)
+            cubicTo(w, h / 2 + h / 2 * currentK, w / 2 + w / 2 * currentK, h, w / 2, h)
+            cubicTo(w / 2 - w / 2 * currentK, h, 0f, h / 2 + h / 2 * currentK, 0f, h / 2)
+            close()
+        }
+    }
 }
 
 @Composable
 fun SquircleButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isPlaying: Boolean = false,
     color: Color = MaterialTheme.colorScheme.primaryContainer,
     content: @Composable () -> Unit
 ) {
+    val morphProgress by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
+        label = "shapeMorph"
+    )
+    
+    val shape = MorphingShape(morphProgress)
+    
     Box(
         modifier = modifier
-            .background(color, SquircleShape)
+            .background(color, shape)
             .clickable(onClick = onClick),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {

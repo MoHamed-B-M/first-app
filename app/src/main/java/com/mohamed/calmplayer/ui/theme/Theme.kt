@@ -14,28 +14,42 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.compose.material3.Shapes
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
     secondary = PurpleGrey80,
-    tertiary = Pink80
+    tertiary = Pink80,
+    surface = Color(0xFF121212),
+    onSurface = Color(0xFFE1E1E1)
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = CalmGreenPrimary,
     secondary = CalmGreenSecondary,
-    tertiary = CalmGreenTertiary
+    tertiary = CalmGreenTertiary,
+    surface = Color(0xFFFDFDFD),
+    onSurface = Color(0xFF1B1B1B)
 )
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CalmMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
+    seedColor: Color? = null,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
+        seedColor != null -> {
+            // In M3 Expressive, we can use a seed color for "vibrant" shifts
+            if (darkTheme) darkColorScheme(primary = seedColor) 
+            else lightColorScheme(primary = seedColor)
+            // Note: Ideally use a proper SchemeExpressive builder here
+        }
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -48,13 +62,14 @@ fun CalmMusicTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 
-    MaterialTheme(
+    MaterialExpressiveTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        motionScheme = MotionScheme.expressive(),
         shapes = Shapes,
         content = content
     )
