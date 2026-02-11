@@ -22,6 +22,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug - List Files
+        # This helps us see if the files actually exist in the runner
+        run: ls -R
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -37,35 +41,39 @@ jobs:
       - name: Auto-Increment Version
         id: get_version
         run: |
-          # Automatically find the build.gradle file regardless of folder structure
-          GRADLE_FILE=$(find . -name "build.gradle" | grep -v "settings" | head -n 1)
+          # 1. Search for the app-level build.gradle (looking for the one that contains 'versionName')
+          GRADLE_FILE=$(grep -l "versionName" $(find . -name "*.gradle") | head -n 1)
+          
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "ERROR: Could not find a build.gradle file containing 'versionName'"
+            exit 1
+          fi
+          
           echo "Using file: $GRADLE_FILE"
+          echo "GRADLE_PATH=$GRADLE_FILE" >> $GITHUB_ENV
           
-          # 1. Extract the current version
+          # 2. Extract the current version
           OLD_VER=$(grep "versionName" "$GRADLE_FILE" | head -n 1 | awk -F'"' '{print $2}')
+          echo "Current Version: $OLD_VER"
           
-          # Fallback if version name is missing or empty
-          if [ -z "$OLD_VER" ]; then OLD_VER="1.0.0"; fi
-          
-          # 2. Logic to increment the Patch (e.g., 1.0.5 -> 1.0.6)
+          # 3. Logic to increment the Patch
           IFS='.' read -r major minor patch <<< "$OLD_VER"
           NEW_PATCH=$((patch + 1))
           NEW_VER="$major.$minor.$NEW_PATCH"
           
-          # 3. Update the file
+          # 4. Update the file
           sed -i "s/versionName \"$OLD_VER\"/versionName \"$NEW_VER\"/" "$GRADLE_FILE"
           
-          # 4. Export variables
+          # 5. Export variables
           echo "VERSION=$NEW_VER" >> $GITHUB_OUTPUT
           echo "NEW_VERSION=$NEW_VER" >> $GITHUB_ENV
-          echo "GRADLE_PATH=$GRADLE_FILE" >> $GITHUB_ENV
-          echo "Bumping version from $OLD_VER to $NEW_VER"
+          echo "Bumping version to $NEW_VER"
 
       - name: Commit and Push Version Bump
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add ${{ env.GRADLE_PATH }}
+          git add "${{ env.GRADLE_PATH }}"
           git commit -m "chore: bump version to v${{ env.NEW_VERSION }} [skip ci]"
           git push origin main
 
@@ -98,7 +106,7 @@ jobs:
           generate_release_notes: true
           body: |
             ### 🎵 CalmPlayer Automated Build
-            This version was automatically compiled and versioned for Oppo Reno 3.
+            Automated versioning and build for Oppo Reno 3.
           draft: false
           prerelease: true
           files: release-artifacts/**/*.apk
