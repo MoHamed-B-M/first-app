@@ -46,6 +46,9 @@ import com.mohamed.calmplayer.ui.components.PlayerSheet
 import com.mohamed.calmplayer.ui.navigation.CalmMusicNavHost
 import com.mohamed.calmplayer.ui.navigation.Screen
 import com.mohamed.calmplayer.ui.theme.CalmMusicTheme
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.media3.common.Player
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,16 +74,20 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    playerViewModel: com.mohamed.calmplayer.domain.PlayerViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     
-    var currentSong by remember { mutableStateOf<Song?>(null) }
-    var isPlaying by remember { mutableStateOf(false) }
-    var showPlayerSheet by remember { mutableStateOf(false) }
+    val currentSong by playerViewModel.currentSong.collectAsState()
+    val isPlaying by playerViewModel.isPlaying.collectAsState()
+    val position by playerViewModel.position.collectAsState()
+    val duration by playerViewModel.duration.collectAsState()
     
-    var controller by remember { mutableStateOf<MediaController?>(null) }
+    var showPlayerSheet by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -88,12 +95,6 @@ fun MainScreen() {
     )
 
     LaunchedEffect(Unit) {
-        val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-        controllerFuture.addListener({
-            controller = controllerFuture.get()
-        }, MoreExecutors.directExecutor())
-        
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_AUDIO
         } else {
@@ -105,166 +106,123 @@ fun MainScreen() {
         }
     }
 
-    // Synchronize isPlaying state from controller
-    LaunchedEffect(controller) {
-        controller?.addListener(object : androidx.media3.common.Player.Listener {
-            override fun onIsPlayingChanged(isPlayingChanged: Boolean) {
-                isPlaying = isPlayingChanged
-            }
-        })
-    }
-
     @OptIn(ExperimentalSharedTransitionApi::class)
     SharedTransitionLayout {
         Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            bottomBar = {
-                Column {
-                    AnimatedVisibility(
-                        visible = currentSong != null && !showPlayerSheet,
-                        enter = slideInVertically(initialOffsetY = { it }),
-                        exit = slideOutVertically(targetOffsetY = { it })
-                    ) {
-                        currentSong?.let { song ->
-                            MiniPlayer(
-                                song = song,
-                                isPlaying = isPlaying,
-                                onPlayPause = { 
-                                    if (isPlaying) controller?.pause() else controller?.play()
-                                },
-                                onSkipNext = { controller?.seekToNext() },
-                                onClick = { showPlayerSheet = true },
-                                sharedTransitionScope = this@SharedTransitionLayout,
-                                animatedVisibilityScope = this
+            Scaffold(
+                bottomBar = {
+                    Column {
+                        AnimatedVisibility(
+                            visible = currentSong != null && !showPlayerSheet,
+                            enter = slideInVertically(initialOffsetY = { it }),
+                            exit = slideOutVertically(targetOffsetY = { it })
+                        ) {
+                            currentSong?.let { song ->
+                                MiniPlayer(
+                                    song = song,
+                                    isPlaying = isPlaying,
+                                    onPlayPause = { playerViewModel.togglePlayPause() },
+                                    onSkipNext = { playerViewModel.skipNext() },
+                                    onClick = { showPlayerSheet = true },
+                                    sharedTransitionScope = this@SharedTransitionLayout,
+                                    animatedVisibilityScope = this
+                                )
+                            }
+                        }
+                        
+                        NavigationBar {
+                            val navBackStackEntry by navController.currentBackStackEntryAsState()
+                            val currentRoute = navBackStackEntry?.destination?.route
+
+                            NavigationBarItem(
+                                icon = { Icon(Icons.Filled.Home, "Home") },
+                                label = { Text("Home") },
+                                selected = currentRoute == Screen.Home.route,
+                                onClick = {
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            )
+                            NavigationBarItem(
+                                icon = { Icon(Icons.Filled.Search, "Search") },
+                                label = { Text("Search") },
+                                selected = currentRoute == Screen.Search.route,
+                                onClick = {
+                                    navController.navigate(Screen.Search.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            )
+                            NavigationBarItem(
+                                icon = { Icon(Icons.Filled.LibraryMusic, "Library") },
+                                label = { Text("Library") },
+                                selected = currentRoute == Screen.Library.route,
+                                onClick = {
+                                    navController.navigate(Screen.Library.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
                             )
                         }
                     }
-                    
-                    NavigationBar {
-                        val navBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentRoute = navBackStackEntry?.destination?.route
-
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                            label = { Text("Home") },
-                            selected = currentRoute == Screen.Home.route,
-                            onClick = {
-                                navController.navigate(Screen.Home.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
-                            label = { Text("Search") },
-                            selected = currentRoute == Screen.Search.route,
-                            onClick = {
-                                navController.navigate(Screen.Search.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Filled.LibraryMusic, contentDescription = "Library") },
-                            label = { Text("Library") },
-                            selected = currentRoute == Screen.Library.route,
-                            onClick = {
-                                navController.navigate(Screen.Library.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                    }
                 }
-            }
-        ) { innerPadding ->
-            CalmMusicNavHost(
-                navController = navController,
-                modifier = Modifier.padding(innerPadding),
-                onSongClick = { song ->
-                    currentSong = song
-                    showPlayerSheet = true
-                    controller?.let {
+            ) { innerPadding ->
+                CalmMusicNavHost(
+                    navController = navController,
+                    modifier = Modifier.padding(innerPadding),
+                    onSongClick = { song ->
                         val helper = MediaLibraryHelper(context)
-                        // Note: ideally blocked folders should be passed here too if you want to skip blocked songs in queue
                         val allSongs = helper.getAllSongs() 
-                        val startIndex = allSongs.indexOfFirst { it.id == song.id }
-                        
-                        val mediaItems = allSongs.map {
-                            MediaItem.Builder()
-                                .setMediaId(it.id.toString())
-                                .setUri(it.uri)
-                                .build()
-                        }
-                        
-                        it.setMediaItems(mediaItems, startIndex, 0)
-                        it.prepare()
-                        it.play()
-                    }
-                },
-                onSettingsClick = {
-                    navController.navigate(Screen.Settings.route)
-                }
-            )
-        }
-
-        var position by remember { mutableLongStateOf(0L) }
-        var duration by remember { mutableLongStateOf(0L) }
-
-        LaunchedEffect(isPlaying) {
-            if (isPlaying) {
-                while (true) {
-                    position = controller?.currentPosition ?: 0L
-                    duration = controller?.duration ?: 0L
-                    kotlinx.coroutines.delay(1000)
-                }
-            }
-        }
-
-        AnimatedContent(
-            targetState = showPlayerSheet,
-            label = "playerTransition",
-            transitionSpec = {
-                if (targetState) {
-                    slideInVertically { it } + fadeIn() togetherWith
-                            fadeOut()
-                } else {
-                    fadeIn() togetherWith
-                            slideOutVertically { it } + fadeOut()
-                }
-            }
-        ) { targetShowPlayerSheet ->
-            if (targetShowPlayerSheet) {
-                PlayerSheet(
-                    song = currentSong,
-                    isPlaying = isPlaying,
-                    position = position,
-                    duration = duration,
-                    onPositionChange = { newPos -> controller?.seekTo(newPos) },
-                    onPlayPause = { 
-                        if (isPlaying) controller?.pause() else controller?.play()
+                        playerViewModel.playSong(song, allSongs)
+                        showPlayerSheet = true
                     },
-                    onSkipNext = { controller?.seekToNext() },
-                    onSkipPrevious = { controller?.seekToPrevious() },
-                    onDismiss = { showPlayerSheet = false },
-                    visible = true,
-                    sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedVisibilityScope = this
+                    onSettingsClick = {
+                        navController.navigate(Screen.Settings.route)
+                    }
                 )
             }
-        }
+
+            AnimatedContent(
+                targetState = showPlayerSheet,
+                label = "playerTransition",
+                transitionSpec = {
+                    if (targetState) {
+                        slideInVertically(
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
+                            initialOffsetY = { it }
+                        ) + fadeIn() togetherWith fadeOut()
+                    } else {
+                        fadeIn() togetherWith slideOutVertically(
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
+                            targetOffsetY = { it }
+                        ) + fadeOut()
+                    }
+                }
+            ) { targetShowPlayerSheet ->
+                if (targetShowPlayerSheet) {
+                    PlayerSheet(
+                        song = currentSong,
+                        isPlaying = isPlaying,
+                        position = position,
+                        duration = duration,
+                        onPositionChange = { playerViewModel.seekTo(it) },
+                        onPlayPause = { playerViewModel.togglePlayPause() },
+                        onSkipNext = { playerViewModel.skipNext() },
+                        onSkipPrevious = { playerViewModel.skipPrevious() },
+                        onDismiss = { showPlayerSheet = false },
+                        visible = true,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this
+                    )
+                }
+            }
         }
     }
 }

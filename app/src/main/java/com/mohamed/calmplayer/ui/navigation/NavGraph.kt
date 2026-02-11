@@ -78,7 +78,9 @@ fun CalmMusicNavHost(
                 slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
             }
         ) {
-            com.mohamed.calmplayer.ui.screens.SettingsScreen()
+            com.mohamed.calmplayer.ui.screens.SettingsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
     }
 }

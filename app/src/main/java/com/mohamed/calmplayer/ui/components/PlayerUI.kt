@@ -25,8 +25,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import com.mohamed.calmplayer.data.Song
+import com.mohamed.calmplayer.ui.components.ExpressiveControlLayout
+import com.mohamed.calmplayer.ui.components.ExpressiveWaveformSeekbar
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -82,168 +87,162 @@ fun FullPlayerContent(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val context = LocalContext.current
+    val audioManager = remember { context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager }
+    
+    // Performance optimization: local state for sliding to avoid recomposition spam
+    var sliderScrubbingValue by remember { mutableFloatStateOf(0f) }
+    var isScrubbing by remember { mutableStateOf(false) }
+    
+    val currentProgress = if (isScrubbing) sliderScrubbingValue else {
+        if (duration > 0) position.toFloat() / duration.toFloat() else 0f
+    }
+
     with(sharedTransitionScope) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
-        // Blurred Background
-        AsyncImage(
-            model = song.albumArtUri,
-            contentDescription = null,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer {
-                    alpha = 0.3f
-                    clip = true
+                .background(MaterialTheme.colorScheme.surface)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures { change, dragAmount ->
+                        if (dragAmount > 50) { // Swipe down to collapse
+                            onCollapse()
+                        }
+                    }
                 }
-                .blur(35.dp),
-            contentScale = ContentScale.Crop
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Drag Handle
-            Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    .clickable { onCollapse() }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Handle / Collapse
-            IconButton(
-                onClick = onCollapse,
-                modifier = Modifier.align(Alignment.Start)
-            ) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Collapse", tint = MaterialTheme.colorScheme.onSurface)
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Large Album Art
-            val albumArtMorph by animateFloatAsState(
-                targetValue = 1f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
-                label = "albumArtMorph"
-            )
-            val albumArtShape = MorphingShape(albumArtMorph)
-
+            // Blurred Background - use graphicsLayer for perf
             AsyncImage(
                 model = song.albumArtUri,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(320.dp)
-                    .sharedElement(
-                        rememberSharedContentState(key = "album_art_${song.id}"),
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
-                    .clip(albumArtShape)
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), albumArtShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = 0.25f
+                        clip = true
+                    }
+                    .blur(40.dp),
                 contentScale = ContentScale.Crop
             )
-            
-            Spacer(modifier = Modifier.height(48.dp))
-            
-            // Title & Artist
+
             Column(
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Expressive Slider
-            val progress = remember(position, duration) {
-                if (duration > 0) position.toFloat() / duration.toFloat() else 0f
-            }
-            
-            ExpressiveSlider(
-                progress = progress,
-                onValueChange = { newProgress ->
-                    onPositionChange((newProgress * duration).toLong())
-                }
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(formatTime(position), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(formatTime(duration), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            
-            Spacer(modifier = Modifier.height(48.dp))
-            
-            // Controls - Using standard Row since ConnectedButtonGroup/Button are unresolved in this build
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onSkipPrevious,
-                    modifier = Modifier.size(72.dp)
-                ) {
-                    Icon(Icons.Filled.SkipPrevious, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurface)
-                }
+                Spacer(modifier = Modifier.height(16.dp))
                 
-                SquircleButton(
-                    onClick = onPlayPause,
-                    modifier = Modifier.size(96.dp),
-                    isPlaying = isPlaying,
-                    color = MaterialTheme.colorScheme.primaryContainer
+                // Top Bar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    IconButton(onClick = onCollapse) {
+                        Icon(Icons.Filled.KeyboardArrowDown, "Collapse", modifier = Modifier.size(32.dp))
+                    }
+                    Text(
+                        text = "Now Playing",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    IconButton(onClick = { /* Queue shortcut */ }) {
+                        Icon(Icons.Filled.QueueMusic, "Queue")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+                
+                // Album Art with Volume Gesture
+                Box(
+                    modifier = Modifier
+                        .size(340.dp)
+                        .graphicsLayer {
+                            shadowElevation = 20.dp.toPx()
+                            shape = RoundedCornerShape(24.dp)
+                            clip = true
+                        }
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures { change, dragAmount ->
+                                // Swipe up/down to control system volume
+                                val delta = -dragAmount / 10f
+                                val currentVolume = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                                val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                                val nextVolume = (currentVolume + delta).coerceIn(0f, maxVolume.toFloat()).toInt()
+                                audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, nextVolume, 0)
+                            }
+                        }
+                ) {
+                    AsyncImage(
+                        model = song.albumArtUri,
                         contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .sharedElement(
+                                rememberSharedContentState(key = "album_art_${song.id}"),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            ),
+                        contentScale = ContentScale.Crop
                     )
                 }
                 
-                IconButton(
-                    onClick = onSkipNext,
-                    modifier = Modifier.size(72.dp)
+                Spacer(modifier = Modifier.height(48.dp))
+                
+                // Info Section
+                Column(
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Filled.SkipNext, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${song.artist} • ${song.mood} (${song.bpm} BPM)",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
                 }
+                
+                Spacer(modifier = Modifier.height(40.dp))
+                
+                // Expressive Waveform Seekbar
+                ExpressiveWaveformSeekbar(
+                    progress = currentProgress,
+                    onValueChange = { 
+                        onPositionChange((it * duration).toLong())
+                    }
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(formatTime(position), style = MaterialTheme.typography.labelMedium)
+                    Text(formatTime(duration), style = MaterialTheme.typography.labelMedium)
+                }
+                
+                Spacer(modifier = Modifier.height(48.dp)) // Move controls higher
+                
+                // Expressive Controls
+                ExpressiveControlLayout(
+                    onPlayPause = onPlayPause,
+                    onSkipNext = onSkipNext,
+                    onSkipPrevious = onSkipPrevious,
+                    isPlaying = isPlaying
+                )
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                // Bottom reach zone spacers are handled by the weight and padding
             }
-            
-            Spacer(modifier = Modifier.height(48.dp))
         }
-    }
     }
 }
 

@@ -404,8 +404,10 @@ fun SearchScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScreen(
+    onBackClick: () -> Unit = {},
     viewModel: com.mohamed.calmplayer.domain.SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val theme by viewModel.themeState.collectAsState()
@@ -413,6 +415,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val helper = remember { MediaLibraryHelper(context) }
     var allFolders by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -420,110 +423,194 @@ fun SettingsScreen(
         }
     }
 
-    Column(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Settings",
-            style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        // Theme Section
-        Text(
-            text = "Appearance",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                com.mohamed.calmplayer.data.ThemeConfig.entries.forEach { config ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.setTheme(config) }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = config.name.lowercase().replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        androidx.compose.material3.RadioButton(
-                            selected = theme == config,
-                            onClick = { viewModel.setTheme(config) }
-                        )
+            .background(MaterialTheme.colorScheme.surface),
+        topBar = {
+            LargeTopAppBar(
+                title = { 
+                    Text(
+                        "Settings", 
+                        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold)
+                    ) 
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Filled.Close, "Close")
                     }
-                }
-            }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            )
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Folders Section
-        Text(
-            text = "Music Folders",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
+    ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 100.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            items(allFolders.toList()) { folder ->
-                val isBlocked = blockedFolders.contains(folder)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isBlocked) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
-                                        else MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = folder.substringAfterLast("/"),
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            Text(
-                                text = folder,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        androidx.compose.material3.Switch(
-                            checked = !isBlocked,
-                            onCheckedChange = { allowed ->
-                                if (allowed) viewModel.removeBlockedFolder(folder)
-                                else viewModel.addBlockedFolder(folder)
+            // Appearance Group
+            item {
+                SettingsGroup(title = "Appearance") {
+                    com.mohamed.calmplayer.data.ThemeConfig.entries.forEach { config ->
+                        PreferenceItem(
+                            title = config.name.lowercase().replaceFirstChar { it.uppercase() },
+                            selected = theme == config,
+                            onClick = { viewModel.setTheme(config) },
+                            icon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(getSquircleShape())
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (config == com.mohamed.calmplayer.data.ThemeConfig.DARK) Icons.Filled.Settings else Icons.Filled.Settings, // Placeholder icons
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
                             }
                         )
                     }
                 }
             }
+
+            // Library Group
+            item {
+                SettingsGroup(title = "Media Library") {
+                    Text(
+                        "Manage folders to scan for music. Blocked folders will be hidden from your library.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+
+            items(allFolders.toList()) { folder ->
+                val isBlocked = blockedFolders.contains(folder)
+                FolderPreferenceItem(
+                    folder = folder,
+                    isBlocked = isBlocked,
+                    onToggle = { allowed ->
+                        if (allowed) viewModel.removeBlockedFolder(folder)
+                        else viewModel.addBlockedFolder(folder)
+                    }
+                )
+            }
+            
+            item {
+                Spacer(modifier = Modifier.height(100.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsGroup(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+        )
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+fun PreferenceItem(
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        icon()
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        RadioButton(selected = selected, onClick = onClick)
+    }
+}
+
+@Composable
+fun FolderPreferenceItem(
+    folder: String,
+    isBlocked: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = if (isBlocked) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(getSquircleShape())
+                    .background(if (isBlocked) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.MusicNote,
+                    contentDescription = null,
+                    tint = if (isBlocked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = folder.substringAfterLast("/"),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = folder,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Switch(
+                checked = !isBlocked,
+                onCheckedChange = onToggle
+            )
         }
     }
 }

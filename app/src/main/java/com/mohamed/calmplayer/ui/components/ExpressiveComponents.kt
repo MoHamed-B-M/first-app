@@ -4,17 +4,19 @@ import android.graphics.Matrix
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
@@ -23,8 +25,10 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.CornerRounding
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
@@ -39,23 +43,87 @@ fun getSquircleShape() = MorphingShape(0f)
 fun getMorphingCircleShape() = MorphingShape(1f)
 
 @Composable
-fun ExpressiveSlider(
+fun ExpressiveWaveformSeekbar(
     progress: Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
-    trackColor: Color = MaterialTheme.colorScheme.surfaceVariant
+    inactiveColor: Color = MaterialTheme.colorScheme.surfaceVariant
 ) {
-    Slider(
-        value = progress,
-        onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
-        colors = SliderDefaults.colors(
-            thumbColor = color,
-            activeTrackColor = color,
-            inactiveTrackColor = trackColor
-        )
+    var draggingProgress by remember { mutableFloatStateOf(progress) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    val pulse by animateFloatAsState(
+        targetValue = if (isDragging) 1.05f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "pulse"
     )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .graphicsLayer {
+                scaleX = pulse
+                scaleY = pulse
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { offset ->
+                        isDragging = true
+                        val newProgress = (offset.x / size.width).coerceIn(0f, 1f)
+                        draggingProgress = newProgress
+                        try {
+                            awaitRelease()
+                        } finally {
+                            isDragging = false
+                            onValueChange(draggingProgress)
+                        }
+                    }
+                )
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { isDragging = true },
+                    onDragEnd = {
+                        isDragging = false
+                        onValueChange(draggingProgress)
+                    },
+                    onDragCancel = { isDragging = false },
+                    onHorizontalDrag = { change, _ ->
+                        val newProgress = (change.position.x / size.width).coerceIn(0f, 1f)
+                        draggingProgress = newProgress
+                    }
+                )
+            },
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val barWidth = 3.dp.toPx()
+            val gap = 3.dp.toPx()
+            val count = (width / (barWidth + gap)).toInt()
+            
+            val currentProgress = if (isDragging) draggingProgress else progress
+
+            for (i in 0 until count) {
+                val x = i * (barWidth + gap)
+                val normalizedX = i.toFloat() / count
+                // Sine wave based height
+                val barHeight = (height * (0.3f + 0.5f * kotlin.math.sin(i * 0.3 + currentProgress * 20).let { if (it < 0) -it else it })).coerceIn(4.dp.toPx(), height)
+                
+                val colorToUse = if (normalizedX <= currentProgress) color else inactiveColor
+                
+                drawRoundRect(
+                    color = colorToUse,
+                    topLeft = androidx.compose.ui.geometry.Offset(x, (height - barHeight) / 2),
+                    size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2)
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -70,7 +138,6 @@ fun MorphingShape(
         )
     }
     val circle = remember {
-        // Create a circle using many vertices or high rounding
         RoundedPolygon(
             numVertices = 12,
             rounding = CornerRounding(radius = 1f)
@@ -93,7 +160,6 @@ fun MorphingShape(
                 androidPath.reset()
                 morph.toPath(morphProgress, androidPath)
                 
-                // Scale and center (RoundedPolygon is centered at 0,0 with radius 1)
                 matrix.reset()
                 matrix.postScale(size.width / 2f, size.height / 2f)
                 matrix.postTranslate(size.width / 2f, size.height / 2f)
@@ -136,5 +202,65 @@ fun SquircleButton(
         contentAlignment = Alignment.Center
     ) {
         content()
+    }
+}
+
+@Composable
+fun ExpressiveControlLayout(
+    onPlayPause: () -> Unit,
+    onSkipNext: () -> Unit,
+    onSkipPrevious: () -> Unit,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .height(100.dp)
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(50.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxHeight().padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onSkipPrevious,
+                modifier = Modifier.size(64.dp)
+            ) {
+                Icon(Icons.Filled.SkipPrevious, null, modifier = Modifier.size(28.dp))
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            SquircleButton(
+                onClick = onPlayPause,
+                modifier = Modifier.size(80.dp),
+                isPlaying = isPlaying,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                val iconScale by animateFloatAsState(
+                    targetValue = if (isPlaying) 1.1f else 1.0f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
+                    label = "iconScale"
+                )
+                Icon(
+                    imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp * iconScale),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            IconButton(
+                onClick = onSkipNext,
+                modifier = Modifier.size(64.dp)
+            ) {
+                Icon(Icons.Filled.SkipNext, null, modifier = Modifier.size(28.dp))
+            }
+        }
     }
 }
