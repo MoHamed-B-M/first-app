@@ -265,6 +265,7 @@ fun MainScreen() {
                 )
             }
         }
+        }
     }
 }
 

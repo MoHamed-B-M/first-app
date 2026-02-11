@@ -21,6 +21,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.SearchBar
@@ -46,7 +51,7 @@ import coil.compose.AsyncImage
 import com.mohamed.calmplayer.data.MediaLibraryHelper
 import com.mohamed.calmplayer.data.Song
 import com.mohamed.calmplayer.ui.components.SquircleButton
-import com.mohamed.calmplayer.ui.components.SquircleShape
+import com.mohamed.calmplayer.ui.components.getSquircleShape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -246,7 +251,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .size(240.dp)
                         .align(Alignment.Center)
-                        .clip(SquircleShape)
+                        .clip(getSquircleShape())
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentScale = ContentScale.Crop
                 )
@@ -283,7 +288,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .size(200.dp)
                         .align(Alignment.Center)
-                        .clip(SquircleShape)
+                        .clip(getSquircleShape())
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
             }
@@ -307,6 +312,7 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     onSongClick: (Song) -> Unit
