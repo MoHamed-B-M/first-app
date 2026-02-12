@@ -37,24 +37,23 @@ jobs:
       - name: Auto-Increment Version
         id: get_version
         run: |
-          # 1. Find the build.gradle.kts file
+          # 1. Find the build.gradle.kts or build.gradle file
           GRADLE_FILE=$(find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -not -path "*/.*/*" | xargs grep -l "versionName" | head -n 1)
           echo "GRADLE_PATH=$GRADLE_FILE" >> $GITHUB_ENV
 
-          # 2. Extract Version Name (e.g., 1.0.6-alpha)
+          # 2. Extract current values
           RAW_VER=$(grep "versionName" "$GRADLE_FILE" | sed -E 's/.*versionName[ =]+["'\'']([^"'\'']+)["'\''].*/\1/')
-          NUMERIC_VER=$(echo $RAW_VER | cut -d'-' -f1)
-          
-          # 3. Extract Version Code (The integer used for updates)
           OLD_CODE=$(grep "versionCode" "$GRADLE_FILE" | sed -E 's/.*versionCode[ =]+([0-9]+).*/\1/')
-          NEW_CODE=$((OLD_CODE + 1))
-
-          # 4. Increment Name Patch
+          
+          # 3. Increment logic for Ordered Tags
+          NUMERIC_VER=$(echo $RAW_VER | cut -d'-' -f1)
           IFS='.' read -r major minor patch <<< "$NUMERIC_VER"
           NEW_PATCH=$((patch + 1))
-          NEW_VER="$major.$minor.$NEW_PATCH-alpha"
           
-          # 5. Update the file (Both Name and Code)
+          NEW_VER="$major.$minor.$NEW_PATCH-alpha"
+          NEW_CODE=$((OLD_CODE + 1))
+
+          # 4. Update the build file
           sed -i -E "s/(versionName[ =]+[\"'])$RAW_VER([\"'])/\1$NEW_VER\2/" "$GRADLE_FILE"
           sed -i -E "s/(versionCode[ =]+)$OLD_CODE/\1$NEW_CODE/" "$GRADLE_FILE"
           
@@ -67,10 +66,10 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           if git diff --exit-code "${{ env.GRADLE_PATH }}"; then
-            echo "No changes."
+            echo "No changes detected."
           else
             git add "${{ env.GRADLE_PATH }}"
-            git commit -m "chore: bump version to v${{ env.NEW_VERSION }} [skip ci]"
+            git commit -m "chore: start fresh versioning v${{ env.NEW_VERSION }} [skip ci]"
             git fetch origin main
             git push origin main --force-with-lease
           fi
@@ -85,7 +84,7 @@ jobs:
           path: "**/build/outputs/apk/debug/*.apk"
 
   release:
-    name: Create Pre-Release
+    name: Create Ordered Release
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -102,10 +101,12 @@ jobs:
           name: "CalmPlayer v${{ needs.build.outputs.app_version }} Alpha"
           generate_release_notes: true
           body: |
-            ### 🎵 CalmPlayer v${{ needs.build.outputs.app_version }}
-            - **Versioning:** Automatically incremented `versionCode` and `versionName`.
-            - **Safety:** Resolved Git conflicts and rebase issues.
-            - **Hardware:** Verified for ColorOS 12.
+            ### ✨ Fresh Start
+            This is the first build in the new ordered versioning sequence.
+            
+            - **Device:** Optimized for Oppo Reno 3 / ColorOS 12.
+            - **UI:** Material 3 Expressive Loading.
+            - **Gestures:** Bouncy swipe gestures implemented.
           draft: false
           prerelease: true
           files: release-artifacts/**/*.apk
