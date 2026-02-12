@@ -5,24 +5,17 @@ import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-
 import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.LoadControl
 
-class PlaybackService : MediaSessionService() {
+class MusicService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 
     override fun onCreate() {
         super.onCreate()
         
-        // Low-memory footprint optimization: Smaller buffer sizes for 4GB RAM devices
-        val loadControl: LoadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(
-                15000, // minBufferMs
-                30000, // maxBufferMs
-                2500,  // bufferForPlaybackMs
-                5000   // bufferForPlaybackAfterRebufferMs
-            )
+        // Optimization for Oppo Reno 3 (Low Memory Buffer Control)
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(15000, 30000, 1000, 2000)
             .build()
 
         val player = ExoPlayer.Builder(this)
@@ -35,22 +28,17 @@ class PlaybackService : MediaSessionService() {
                 true
             )
             .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_NETWORK) // Prevent CPU from sleeping during streaming
             .build()
 
         mediaSession = MediaSession.Builder(this, player).build()
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
-    }
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onDestroy() {
-        mediaSession?.run {
-            player.release()
-            release()
-            mediaSession = null
-        }
+        mediaSession?.player?.release()
+        mediaSession?.release()
+        mediaSession = null
         super.onDestroy()
     }
 }
