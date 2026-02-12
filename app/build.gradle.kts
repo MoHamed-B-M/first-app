@@ -40,8 +40,8 @@ defaultConfig {
         applicationId = "com.mohamed.calmplayer"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.9-alpha"
+        versionCode = 5
+        versionName = "1.0.10-alpha"
     }
 
     buildFeatures {
