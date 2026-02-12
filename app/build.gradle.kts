@@ -36,14 +36,14 @@ android {
     namespace = "com.mohamed.calmplayer"
     compileSdk = 35
 
-    val (vCode, vName) = getAutoVersionInfo()
+    val autoVersion = getAutoVersionInfo()
 
     defaultConfig {
         applicationId = "com.mohamed.calmplayer"
         minSdk = 24
         targetSdk = 35
-        versionCode = vCode
-        versionName = vName
+        versionCode = autoVersion.first
+        versionName = autoVersion.second
     }
 
     buildTypes {
