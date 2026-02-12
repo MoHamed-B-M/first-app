@@ -42,7 +42,6 @@ android {
         applicationId = "com.mohamed.calmplayer"
         minSdk = 24
         targetSdk = 35
-<<<<<<< HEAD
         versionCode = autoVersion.first
         versionName = autoVersion.second
     }
@@ -55,10 +54,6 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             isDebuggable = false
         }
-=======
-        versionCode = 5
-        versionName = "1.0.10-alpha"
->>>>>>> d34ce1ba08e940b3fdec6ee12d0af0742485c211
     }
 
     buildFeatures {
