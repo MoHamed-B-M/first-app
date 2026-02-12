@@ -295,7 +295,7 @@ fun HomeScreen(
             }
             
             SquircleButton(
-                onClick = { if (songs.isNotEmpty()) onSongClick(songs[0]) },
+                onClick = { if (songs.isNotEmpty()) onSongClick(songs[0], songs) },
                 modifier = Modifier
                     .size(80.dp)
                     .align(Alignment.BottomEnd)

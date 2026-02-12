@@ -99,7 +99,7 @@ fun FullPlayerContent(
         colors = listOf(primaryColor, surfaceColor, surfaceColor)
     )
 
-    val content = @Composable {
+
     if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
             Box(
@@ -162,6 +162,7 @@ fun FullPlayerContent(
         }
     }
 }
+
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
