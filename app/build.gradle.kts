@@ -74,14 +74,14 @@ android {
 
 dependencies {
     // Core dependencies
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.activity:activity-compose:1.10.0")
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation("androidx.activity:activity-compose:1.8.0")
     
     // Compose BOM
-    implementation(platform("androidx.compose:compose-bom:2025.01.00"))
+    implementation(platform("androidx.compose:compose-bom:2023.10.01"))
     
     // Compose UI dependencies
     implementation("androidx.compose.ui:ui")
@@ -90,39 +90,26 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     
     // Material Design 3
-    implementation("androidx.compose.material3:material3:1.5.0-alpha13")
-    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-alpha07")
-    implementation("androidx.compose.material3.adaptive:adaptive-layout:1.3.0-alpha07")
-    implementation("androidx.compose.material3.adaptive:adaptive-navigation:1.3.0-alpha07")
-    
-    // Graphics Shapes for morphing
-    implementation("androidx.graphics:graphics-shapes:1.0.1")
-    
-    // Material Icons
-    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     
-    // For ContextCompat
-    implementation("androidx.core:core:1.15.0")
-    
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.navigation:navigation-compose:2.7.4")
     
     // Coil for image loading
-    implementation("io.coil-kt:coil-compose:2.5.0")
-
-    // Media3 dependencies for Audio Player
-    implementation("androidx.media3:media3-exoplayer:1.2.0")
-    implementation("androidx.media3:media3-ui:1.2.0")
-    implementation("androidx.media3:media3-session:1.2.0")
+    implementation("io.coil-kt:coil-compose:2.4.0")
     
-    // DataStore for settings
+    // Media3 for audio playback
+    implementation("androidx.media3:media3-exoplayer:1.1.1")
+    implementation("androidx.media3:media3-ui:1.1.1")
+    
+    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     
-    // DocumentFile for file access
+    // DocumentFile
     implementation("androidx.documentfile:documentfile:1.0.1")
     
-    // Debug dependencies
+    // Debug
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
