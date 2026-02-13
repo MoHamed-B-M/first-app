@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.mohamed.calmplayer.domain.SettingsViewModel
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.pager.ExperimentalFoundationApi
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
