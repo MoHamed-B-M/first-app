@@ -3,6 +3,11 @@ package com.mohamed.calmplayer.ui.navigation
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,13 +43,22 @@ fun CalmMusicNavHost(
         modifier = modifier
     ) {
         composable(Screen.Home.route) {
-            HomeScreen(onSettingsClick = onSettingsClick, onSongClick = onSongClick)
+            HomeScreen(
+                onSettingsClick = onSettingsClick, 
+                onSongClick = onSongClick
+            )
         }
         composable(Screen.Search.route) {
-            SearchScreen(onSongClick = onSongClick)
+            SearchScreen(
+                onSongClick = onSongClick,
+                onBackClick = { navController.popBackStack() }
+            )
         }
         composable(Screen.Library.route) {
-            LibraryScreen(onSongClick = onSongClick, onSettingsClick = onSettingsClick)
+            LibraryScreen(
+                onSongClick = onSongClick, 
+                onSettingsClick = onSettingsClick
+            )
         }
         composable(Screen.Settings.route) {
             com.mohamed.calmplayer.ui.screens.SettingsScreen(
@@ -56,18 +70,34 @@ fun CalmMusicNavHost(
             val song by musicVm.currentSong.collectAsState()
             val isPlaying by musicVm.isPlaying.collectAsState()
 
-            com.mohamed.calmplayer.ui.components.PlayerSheet(
-                song = song,
-                isPlaying = isPlaying,
-                position = 0L,
-                duration = 0L,
-                onPositionChange = { musicVm.seekTo(it) },
-                onPlayPause = { musicVm.togglePlayPause() },
-                onSkipNext = { musicVm.skipNext() },
-                onSkipPrevious = { musicVm.skipPrevious() },
-                onDismiss = { navController.popBackStack() },
-                visible = true
-            )
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                TopAppBar(
+                    title = { Text("Now Playing") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+                
+                com.mohamed.calmplayer.ui.components.PlayerSheet(
+                    song = song,
+                    isPlaying = isPlaying,
+                    position = 0L,
+                    duration = 0L,
+                    onPositionChange = { musicVm.seekTo(it) },
+                    onPlayPause = { musicVm.togglePlayPause() },
+                    onSkipNext = { musicVm.skipNext() },
+                    onSkipPrevious = { musicVm.skipPrevious() },
+                    onDismiss = { navController.popBackStack() },
+                    visible = true
+                )
+            }
         }
     }
 }

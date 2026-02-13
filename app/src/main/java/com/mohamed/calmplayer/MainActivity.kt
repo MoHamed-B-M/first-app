@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -78,13 +79,27 @@ fun WelcomeScreen(vm: SettingsViewModel) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         try {
             uri?.let {
+                // Take persistent URI permission to survive reboots
                 context.contentResolver.takePersistableUriPermission(
-                    it, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    it, 
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
+                
+                // Also take write permission for future features
+                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                try {
+                    context.contentResolver.takePersistableUriPermission(it, flags)
+                } catch (e: SecurityException) {
+                    // Write permission might not be granted, but read is sufficient
+                    Log.w("MainActivity", "Write permission not granted, read permission sufficient")
+                }
+                
                 vm.setMusicFolderUri(it.toString())
+                Toast.makeText(context, "Music folder selected successfully", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(context, "Permission Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            Log.e("MainActivity", "Permission Error", e)
+            Toast.makeText(context, "Permission Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
