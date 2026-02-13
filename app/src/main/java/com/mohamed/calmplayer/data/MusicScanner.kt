@@ -62,7 +62,7 @@ class MusicScanner(private val context: Context) {
         
         val children = documentFile.listFiles()
         
-        for (child in children) {
+        children?.forEach { child ->
             if (child.isDirectory) {
                 // Recursively scan subdirectories
                 scanDirectoryRecursive(child, songs)
@@ -89,7 +89,7 @@ class MusicScanner(private val context: Context) {
         val children = documentFile.listFiles()
         var processedCount = 0
         
-        for (child in children) {
+        children?.forEach { child ->
             if (child.isDirectory && processedCount < 20) { // Limit directory scanning in power save mode
                 scanDirectoryOptimized(child, songs)
                 processedCount++

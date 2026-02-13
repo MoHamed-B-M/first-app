@@ -63,6 +63,7 @@ import com.mohamed.calmplayer.ui.components.getSquircleShape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
     onSongClick: (Song, List<Song>) -> Unit,
@@ -254,6 +255,7 @@ fun SongItem(song: Song, onClick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit,

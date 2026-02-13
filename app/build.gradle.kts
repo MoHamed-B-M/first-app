@@ -119,6 +119,9 @@ dependencies {
     // DataStore for settings
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     
+    // DocumentFile for file access
+    implementation("androidx.documentfile:documentfile:1.0.1")
+    
     // Debug dependencies
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

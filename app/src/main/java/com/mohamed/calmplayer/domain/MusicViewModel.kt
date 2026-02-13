@@ -104,8 +104,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     
     fun refreshLibrary() {
         viewModelScope.launch {
-            val currentUri = settingsStore.musicFolderUriFlow.value
-            currentUri?.let { scanAndLoadLibrary(it) }
+            settingsStore.musicFolderUriFlow.collect { currentUri ->
+                currentUri?.let { scanAndLoadLibrary(it) }
+                return@collect
+            }
         }
     }
 }

@@ -30,6 +30,7 @@ sealed class Screen(val route: String) {
     object Player : Screen("player")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalmMusicNavHost(
     navController: NavHostController,
