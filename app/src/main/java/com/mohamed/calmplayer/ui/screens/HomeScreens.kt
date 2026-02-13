@@ -130,7 +130,7 @@ fun LibraryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(
+                        ExpressiveLoadingIndicator(
                             modifier = Modifier.size(48.dp),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -479,7 +479,7 @@ fun SearchScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(
+                            ExpressiveLoadingIndicator(
                                 modifier = Modifier.size(32.dp),
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -514,16 +514,18 @@ fun SearchScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     if (isScanning) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Loading your music library...",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            ExpressiveLoadingIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading your music library...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     } else {
                         Icon(
                             imageVector = Icons.Rounded.Search,

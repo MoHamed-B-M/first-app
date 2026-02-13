@@ -3,11 +3,13 @@ package com.mohamed.calmplayer.data
 import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
+import android.os.PowerManager
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 class MusicScanner(private val context: Context) {
@@ -26,6 +28,8 @@ class MusicScanner(private val context: Context) {
     
     suspend fun scanMusicFolder(folderUri: String): List<Song> = withContext(Dispatchers.IO) {
         val songs = mutableListOf<Song>()
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val isPowerSaveMode = powerManager.isPowerSaveMode
         
         try {
             val uri = Uri.parse(folderUri)
@@ -33,7 +37,15 @@ class MusicScanner(private val context: Context) {
             
             if (documentFile?.exists() == true) {
                 Log.d(TAG, "Starting scan of: $folderUri")
-                scanDirectoryRecursively(documentFile, songs)
+                Log.d(TAG, "Power save mode: $isPowerSaveMode")
+                
+                // Optimize scanning based on power mode
+                if (isPowerSaveMode) {
+                    scanDirectoryOptimized(documentFile, songs)
+                } else {
+                    scanDirectoryRecursive(documentFile, songs)
+                }
+                
                 Log.d(TAG, "Scan completed. Found ${songs.size} songs")
             } else {
                 Log.e(TAG, "Document file does not exist or is null")
@@ -45,7 +57,7 @@ class MusicScanner(private val context: Context) {
         songs
     }
     
-    private fun scanDirectoryRecursively(documentFile: DocumentFile, songs: MutableList<Song>) {
+    private suspend fun scanDirectoryRecursive(documentFile: DocumentFile, songs: MutableList<Song>) {
         if (!documentFile.isDirectory) return
         
         val children = documentFile.listFiles()
@@ -53,7 +65,7 @@ class MusicScanner(private val context: Context) {
         for (child in children) {
             if (child.isDirectory) {
                 // Recursively scan subdirectories
-                scanDirectoryRecursively(child, songs)
+                scanDirectoryRecursive(child, songs)
             } else if (child.isFile && isAudioFile(child)) {
                 // Process audio files
                 child.uri?.let { uri ->
@@ -61,6 +73,37 @@ class MusicScanner(private val context: Context) {
                         songs.add(song)
                     }
                 }
+            }
+            
+            // Small delay to prevent overwhelming the system
+            if (songs.size % 50 == 0) {
+                delay(10) // 10ms delay every 50 files
+            }
+        }
+    }
+    
+    private suspend fun scanDirectoryOptimized(documentFile: DocumentFile, songs: MutableList<Song>) {
+        // Optimized scanning for power save mode - reduced recursion depth
+        if (!documentFile.isDirectory) return
+        
+        val children = documentFile.listFiles()
+        var processedCount = 0
+        
+        for (child in children) {
+            if (child.isDirectory && processedCount < 20) { // Limit directory scanning in power save mode
+                scanDirectoryOptimized(child, songs)
+                processedCount++
+            } else if (child.isFile && isAudioFile(child)) {
+                child.uri?.let { uri ->
+                    createSongFromUri(uri, child.name ?: "Unknown")?.let { song ->
+                        songs.add(song)
+                    }
+                }
+            }
+            
+            // Longer delay in power save mode
+            if (songs.size % 25 == 0) {
+                delay(20) // 20ms delay every 25 files in power save mode
             }
         }
     }

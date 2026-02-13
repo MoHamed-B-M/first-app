@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Musical note with waveform design -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M54,24 L54,60 C48,58 42,58 36,62 C30,66 30,74 36,78 C42,82 48,78 54,72 L54,36 L72,30 L72,54 C66,52 60,52 54,56 C48,60 48,68 54,72 C60,76 66,72 72,66 L72,24 Z"/>
+    
+    <!-- Waveform lines -->
+    <path
+        android:fillColor="@android:color/white"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M24,54 L30,54 M36,48 L42,48 M48,54 L54,54 M60,48 L66,48 M72,54 L78,54 M84,48 L90,48"/>
+    
+    <!-- Subtle circle background for note -->
+    <path
+        android:fillColor="@android:color/white"
+        android:fillAlpha="0.1"
+        android:pathData="M54,20 C70,20 82,32 82,48 C82,64 70,76 54,76 C38,76 26,64 26,48 C26,32 38,20 54,20 Z"/>
+</vector>

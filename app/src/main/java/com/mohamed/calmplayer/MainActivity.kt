@@ -42,6 +42,7 @@ import coil.compose.AsyncImage
 import com.mohamed.calmplayer.data.Song
 import com.mohamed.calmplayer.domain.MusicViewModel
 import com.mohamed.calmplayer.domain.SettingsViewModel
+import com.mohamed.calmplayer.ui.screens.IntroScreen
 import com.mohamed.calmplayer.ui.navigation.CalmMusicNavHost
 import com.mohamed.calmplayer.ui.navigation.Screen
 import com.mohamed.calmplayer.ui.theme.CalmMusicTheme
@@ -61,8 +62,17 @@ class MainActivity : ComponentActivity() {
 
             CalmMusicTheme(darkTheme = isDark) {
                 val musicFolder by settingsVm.musicFolderUri.collectAsState()
+                val hasSeenIntro by remember { mutableStateOf(false) } // In real app, store this in DataStore
                 
-                if (musicFolder == null) {
+                if (!hasSeenIntro) {
+                    IntroScreen(
+                        onComplete = { 
+                            // In real app, set hasSeenIntro = true in DataStore
+                            hasSeenIntro.value = true
+                        },
+                        viewModel = settingsVm
+                    )
+                } else if (musicFolder == null) {
                     WelcomeScreen(settingsVm)
                 } else {
                     AppMainLayout()
