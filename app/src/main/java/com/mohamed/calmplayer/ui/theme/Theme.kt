@@ -15,9 +15,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MotionScheme
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -35,7 +32,6 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF1B1B1B)
 )
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CalmMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -45,10 +41,9 @@ fun CalmMusicTheme(
 ) {
     val colorScheme = when {
         seedColor != null -> {
-            // In M3 Expressive, we can use a seed color for "vibrant" shifts
+            // Use seed color for custom color schemes
             if (darkTheme) darkColorScheme(primary = seedColor) 
             else lightColorScheme(primary = seedColor)
-            // Note: Ideally use a proper SchemeExpressive builder here
         }
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -66,10 +61,9 @@ fun CalmMusicTheme(
         }
     }
 
-    MaterialExpressiveTheme(
+    MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        motionScheme = MotionScheme.expressive(),
         shapes = Shapes,
         content = content
     )
