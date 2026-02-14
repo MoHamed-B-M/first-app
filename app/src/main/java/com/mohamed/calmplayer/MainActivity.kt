@@ -62,13 +62,13 @@ class MainActivity : ComponentActivity() {
 
             CalmMusicTheme(darkTheme = isDark) {
                 val musicFolder by settingsVm.musicFolderUri.collectAsState()
-                val hasSeenIntro by remember { mutableStateOf(false) } // In real app, store this in DataStore
+                var hasSeenIntro by remember { mutableStateOf(false) } // In real app, store this in DataStore
                 
                 if (!hasSeenIntro) {
                     IntroScreen(
                         onComplete = { 
                             // In real app, set hasSeenIntro = true in DataStore
-                            hasSeenIntro.value = true
+                            hasSeenIntro = true
                         },
                         viewModel = settingsVm
                     )
