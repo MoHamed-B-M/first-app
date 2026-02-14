@@ -110,17 +110,18 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.activity:activity-compose:1.9.3")
     
-    // Compose BOM - Updated to latest version with Material 3 Expressive support
-    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
+    // Compose BOM - Updated to latest stable version
+    implementation(platform("androidx.compose:compose-bom:2024.09.00"))
+    
+    // Compose UI dependencies
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
+    
+    // Material Design 3 - Using stable version with expressive features
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material3:material3-expressive:1.3.0-alpha01")
-    implementation("androidx.compose.material3.adaptive:adaptive:1.1.0-alpha05")
-    implementation("androidx.compose.material3.adaptive:adaptive-layout:1.1.0-alpha05")
-    implementation("androidx.compose.material3.adaptive:adaptive-navigation:1.1.0-alpha05")
+    implementation("androidx.compose.material3:material3-adaptive")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-graphics")
